@@ -52,6 +52,8 @@ input[type=range]{width:100%;accent-color:var(--accent)}
 .pop-left{background:var(--panel2);border-right:1px solid var(--line);overflow-y:auto;padding:14px}
 .pop-left h4{margin:0 0 10px;font-size:15px}
 .ptab{display:block;width:100%;text-align:left;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:8px 10px;margin-bottom:8px}
+.ptab.locked{opacity:.55;background:var(--panel2);border-style:dashed}
+.ptab.locked .t1 span{color:var(--muted)}
 .ptab.sel{border-color:var(--accent);background:#e3f4ec;box-shadow:0 0 0 1px var(--accent) inset}
 .ptab .t1{display:flex;justify-content:space-between;font-size:13px;font-weight:700}
 .ptab .t1 span{color:var(--accent)}
@@ -1037,7 +1039,8 @@ function resetSpecPar(){ if(!specSel) return; cfg.par[specSel[0]][specSel[1]]={}
 function renderSpecEditor(){
   // 왼쪽 탭: 4차 → 생산자 순
   let L='<h4>초기 생태계 구성</h4>';
-  for(let lv=4;lv>=0;lv--) for(const n of cfg.species[lv]){
+  for(let lv=4;lv>=0;lv--) for(const n of [0,1,2,3].sort((a,b)=>cfg.species[lv].includes(b)-cfg.species[lv].includes(a))){
+    if(!cfg.species[lv].includes(n)){ const sel=specSel&&specSel[0]===lv&&specSel[1]===n; L+=`<div class="ptab locked ${sel?'sel':''}" data-lv="${lv}" data-n="${n}" data-locked="1"><div class="t1">🔒 ${LEVEL_LABEL[lv]} · ${NAMES[lv][n]}<span>미선택</span></div></div>`; continue; }
     const sel=specSel&&specSel[0]===lv&&specSel[1]===n; const k='init', rg=parRange(lv,k), v=parVal(lv,n,k);
     const cnt=lv===0?Math.round(v)+' %':Math.round(v)+' 마리';
     L+=`<div class="ptab ${sel?'sel':''}" data-lv="${lv}" data-n="${n}"><div class="t1">${LEVEL_LABEL[lv]} · ${NAMES[lv][n]}<span>${cnt}</span></div><input type="range" min="${rg[0]}" max="${rg[1]}" step="1" value="${v}" data-k="init"></div>`; }
@@ -1045,14 +1048,16 @@ function renderSpecEditor(){
   $('popLeft').innerHTML=L;
   $('popLeft').querySelectorAll('.ptab').forEach(c=>{
     const pick=()=>{ specSel=[+c.dataset.lv,+c.dataset.n]; $('popLeft').querySelectorAll('.ptab').forEach(x=>x.classList.toggle('sel',x===c)); renderSpecRight(); };
-    c.onclick=pick; c.querySelector('input').addEventListener('pointerdown',pick);
-    const inp=c.querySelector('input'); inp.oninput=()=>{ const lv=+c.dataset.lv,n=+c.dataset.n; cfg.par[lv][n].init=+inp.value; c.querySelector('.t1 span').textContent=lv===0?inp.value+' %':inp.value+' 마리'; refreshSummary(); };
+    c.onclick=pick; const ci=c.querySelector('input'); if(ci) ci.addEventListener('pointerdown',pick);
+    const inp=c.querySelector('input'); if(!inp) return; inp.oninput=()=>{ const lv=+c.dataset.lv,n=+c.dataset.n; cfg.par[lv][n].init=+inp.value; c.querySelector('.t1 span').textContent=lv===0?inp.value+' %':inp.value+' 마리'; refreshSummary(); };
   });
   renderSpecRight();
 }
 function renderSpecRight(){
   if(!specSel){ $('popRight').innerHTML=''; return; }
-  const [lv,n]=specSel; let R=`<h3>${LEVEL_LABEL[lv]} · ${NAMES[lv][n]}</h3><div style="font-size:12.5px;color:var(--muted)">${NICHES[n].label} 지대에 적응한 종 · 설정은 이 종에만 적용됩니다.</div>`;
+  const [lv,n]=specSel;
+  if(!cfg.species[lv].includes(n)){ $('popRight').innerHTML=`<h3>🔒 ${LEVEL_LABEL[lv]} · ${NAMES[lv][n]}</h3><p style="color:var(--muted)">선택하지 않은 종은 조정할 수 없습니다. 설정 화면에서 이 종을 먼저 선택하세요. (층마다 2종까지 선택 가능)</p>`; return; }
+  let R=`<h3>${LEVEL_LABEL[lv]} · ${NAMES[lv][n]}</h3><div style="font-size:12.5px;color:var(--muted)">${NICHES[n].label} 지대에 적응한 종 · 설정은 이 종에만 적용됩니다.</div>`;
   if(lv===0){
     const PR=[['growth','성장 속도',v=>Math.round(v)+'%','식물이 자라는 속도','＋ 빨리 번성','－ 경쟁종을 밀어내고 먹이사슬이 과열됨'],['height','키(높이)',v=>Math.round(v)+'','식물이 자라는 높이. 클수록 포식자의 시야를 가림','＋ 경쟁에 유리·1차 소비자가 은신(포식자가 못 잡음)','－ 성장이 느림'],['life','수명',v=>Math.round(v)+'','식물 개체가 노쇠해 사라지는 속도 (클수록 오래 삼)','＋ 오래 유지','－ 변화에 둔함']];
     R+='<div class="grpt">성장 · 형태</div>'; for(const [k,l,u,d,pro,con] of PR) R+=prow(lv,n,k,l,u,d,pro,con,1);
