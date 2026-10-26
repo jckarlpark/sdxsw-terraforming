@@ -1,0 +1,1215 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>공존 테라포밍 — 외계 행성 생태계 시뮬레이션</title>
+<meta name="description" content="외계 행성을 선택하고 환경에 적응하며, 생태계와 공존하는 방식으로 테라포밍하는 시뮬레이션 게임">
+<style>
+:root{
+  --bg:#f4f1ea; --panel:#ffffff; --panel2:#efece4; --line:#d6d0c2; --text:#1f2933; --muted:#5f6b76;
+  --accent:#1f9d77; --accent2:#2a74c9; --warn:#c98a12; --bad:#d63a2e; --good:#1f9d77;
+  --l0:#4caf6a; --l1:#f2d64b; --l2:#f29a3d; --l3:#e5483f; --l4:#b05cf0;
+}
+*{box-sizing:border-box}
+html,body{color-scheme:light;margin:0;background:var(--bg);color:var(--text);font-family:'Pretendard','Noto Sans KR','Apple SD Gothic Neo','Malgun Gothic',system-ui,sans-serif;line-height:1.45}
+button{font:inherit;color:inherit;cursor:pointer}
+h1,h2,h3{margin:0}
+.hidden{display:none!important}
+.wrap{max-width:1180px;margin:0 auto;padding:20px 16px 60px}
+/* ---------- setup ---------- */
+.hero{padding:26px 0 8px}
+.hero h1{font-size:30px;letter-spacing:-.02em}
+.hero p{color:var(--muted);margin:6px 0 0;max-width:720px}
+.hero .tag{display:inline-block;font-size:12px;color:var(--accent);border:1px solid #9bd3bf;background:#e3f4ec;padding:2px 9px;border-radius:99px;margin-bottom:10px}
+.step{margin-top:26px}
+.step h2{font-size:17px;display:flex;align-items:center;gap:10px}
+.step h2 .n{width:24px;height:24px;border-radius:50%;background:var(--accent);color:#ffffff;font-size:13px;font-weight:700;display:grid;place-items:center}
+.step .sub{color:var(--muted);font-size:13px;margin:4px 0 12px 34px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px;text-align:left;transition:.15s;position:relative}
+.card:hover{border-color:#9aa8b4}
+.card.sel{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset;background:#e3f4ec}
+.planet .orb{width:54px;height:54px;border-radius:50%;margin-bottom:10px;box-shadow:inset -10px -8px 18px rgba(0,0,0,.55),0 0 22px rgba(255,255,255,.06)}
+.planet h3{font-size:16px}
+.planet .t{color:var(--muted);font-size:12px;margin:2px 0 8px}
+.planet p{font-size:13px;color:#44515c;margin:0 0 10px}
+.chips{display:flex;flex-wrap:wrap;gap:5px}
+.chip{font-size:11.5px;background:#f7f5ef;border:1px solid var(--line);border-radius:99px;padding:2px 8px;color:#44515c}
+.env{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px}
+.env label{display:flex;justify-content:space-between;font-size:13.5px;margin-bottom:6px}
+.env label b{color:var(--accent2)}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.seg{display:flex;gap:6px;flex-wrap:wrap}
+.seg button{flex:1;min-width:92px;background:#f7f5ef;border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:13px}
+.seg button.sel{border-color:var(--accent);background:#e3f4ec}
+.seg button small{display:block;color:var(--muted);font-size:11px}
+.sp-row{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:10px}
+.sp-row h3{font-size:13.5px;margin-bottom:8px;display:flex;align-items:center;gap:8px}
+.dot{width:10px;height:10px;border-radius:50%;display:inline-block}
+.sp-opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px}
+.sp{background:#f7f5ef;border:1px solid var(--line);border-radius:10px;padding:8px 10px;text-align:left}
+.sp.sel{border-color:var(--accent);background:#e3f4ec}
+.sp b{font-size:13.5px}
+.sp small{display:block;color:var(--muted);font-size:11.5px}
+.fitbar{height:5px;border-radius:3px;background:#e4e0d5;margin-top:6px;overflow:hidden}
+.fitbar i{display:block;height:100%}
+.summary{margin-top:26px;background:linear-gradient(135deg,#e3f4ec,#e6f0fa);border:1px solid #9bd3bf;border-radius:16px;padding:18px;display:grid;grid-template-columns:1.3fr 1fr;gap:18px;align-items:center}
+.summary h3{font-size:15px;margin-bottom:8px}
+.mrow{display:flex;justify-content:space-between;font-size:13px;color:#44515c;padding:2px 0}
+.mrow b{color:var(--text)}
+.maxscore{font-size:30px;font-weight:800;color:var(--accent);letter-spacing:-.02em}
+.btn{background:var(--accent);color:#ffffff;font-weight:700;border:0;border-radius:12px;padding:12px 22px;font-size:15px}
+.btn:hover{filter:brightness(1.08)}
+.btn.ghost{background:transparent;color:var(--text);border:1px solid var(--line);font-weight:500}
+.btn.sm{padding:7px 12px;font-size:13px;border-radius:9px}
+/* ---------- game ---------- */
+#game .top{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:10px 14px;margin-bottom:12px}
+.top .l{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.top .pn{font-weight:700}
+.stat{font-size:13px;color:var(--muted)}
+.stat b{color:var(--text);font-size:17px;margin-left:4px}
+.top .r{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.top .r button{background:#f7f5ef;border:1px solid var(--line);border-radius:9px;padding:6px 11px;font-size:13px}
+.top .r button.sel{border-color:var(--accent);background:#e3f4ec}
+.pc{font-size:11px;line-height:1.35;margin-top:2px}
+.grid{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:12px}
+@media(min-width:981px){#game .grid{height:calc(100vh - 84px);min-height:520px}#game .grid>div{overflow-y:auto;min-height:0;padding-right:4px}}
+.box{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px}
+.box h3{font-size:13px;color:var(--muted);font-weight:600;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center}
+#mapwrap{position:relative}
+canvas{display:block;width:100%;border-radius:10px;background:#e9e4d6}
+#map{aspect-ratio:80/48;cursor:default}
+#map.pick{cursor:crosshair}
+#banner{position:absolute;left:10px;top:10px;right:10px;display:flex;flex-direction:column;gap:6px;pointer-events:none}
+.bn{background:rgba(253,236,234,.95);border:1px solid #e8a39b;color:#a3281e;border-radius:9px;padding:6px 10px;font-size:13px;width:fit-content}
+.bn.w{background:rgba(255,246,223,.95);border-color:#e3c27a;color:#7a5200}
+.views{display:flex;gap:6px}
+.views button{background:#f7f5ef;border:1px solid var(--line);border-radius:8px;padding:3px 10px;font-size:12px;color:var(--muted)}
+.views button.sel{color:var(--text);border-color:var(--accent)}
+#chart{aspect-ratio:800/170;margin-top:2px}
+.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-top:6px}
+.legend span{display:flex;align-items:center;gap:5px}
+.side{display:flex;flex-direction:column;gap:12px}
+.meter{margin-bottom:8px}
+.meter .mh{display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:3px;color:#44515c}
+.meter .mh b{color:var(--text)}
+.bar{height:8px;border-radius:5px;background:#f7f5ef;overflow:hidden;border:1px solid #d6d0c2}
+.bar i{display:block;height:100%;border-radius:5px;transition:width .25s}
+.ci{font-size:13px;display:flex;justify-content:space-between;align-items:baseline}
+.ci b{font-size:24px;color:var(--accent)}
+.pyr .row{display:grid;grid-template-columns:12px 1fr 52px auto;gap:6px;align-items:center;font-size:12.5px;margin-bottom:5px}
+.pyr .row .nm{overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.pyr .row .nm small{color:var(--muted);margin-left:4px}
+.pyr .row .cnt{text-align:right;font-variant-numeric:tabular-nums}
+.pyr .row.ext .cnt{color:var(--bad);font-weight:700}
+.mini{background:#f7f5ef;border:1px solid var(--line);border-radius:7px;padding:2px 7px;font-size:11.5px}
+.mini:hover:not(:disabled){border-color:var(--accent)}
+button:disabled{opacity:.4;cursor:not-allowed}
+.hum{display:grid;grid-template-columns:1fr 1fr;gap:6px 12px;font-size:12.5px;color:#44515c;margin-bottom:10px}
+.hum b{color:var(--text)}
+.sl{margin-bottom:8px}
+.sl label{display:flex;justify-content:space-between;font-size:12.5px;color:#44515c}
+.sl label b{color:var(--text)}
+.grp{font-size:11.5px;color:var(--accent);margin:8px 0 6px;letter-spacing:.02em}
+.hint{font-size:11px;color:var(--muted);margin-top:1px}
+.acts{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.act{background:#f7f5ef;border:1px solid var(--line);border-radius:9px;padding:7px 8px;text-align:left;font-size:12.5px;line-height:1.3}
+.act small{display:block;color:var(--muted);font-size:11px}
+.act:hover:not(:disabled){border-color:var(--accent)}
+.act.on{border-color:var(--accent2);background:#e6f0fa}
+#log{max-height:190px;overflow:auto;font-size:12.5px}
+#log div{padding:3px 0;border-bottom:1px solid #e4e0d5;color:#44515c}
+#log .warn{color:var(--warn)} #log .bad{color:var(--bad)} #log .act{color:var(--accent2)}
+#log span{color:var(--muted);margin-right:6px;font-variant-numeric:tabular-nums}
+/* modal */
+.modal{position:fixed;inset:0;background:rgba(40,45,50,.45);display:grid;place-items:center;z-index:20;padding:16px}
+.mbox{background:var(--panel);border:1px solid var(--line);border-radius:18px;max-width:560px;width:100%;padding:22px;max-height:90vh;overflow:auto}
+.mbox h2{font-size:22px;margin-bottom:6px}
+.mbox p,.mbox li{font-size:14px;color:#34414c}
+.mbox ul{padding-left:18px;margin:8px 0}
+.big{font-size:40px;font-weight:800;color:var(--accent);letter-spacing:-.02em}
+.res-win h2{color:var(--accent)} .res-lose h2{color:var(--bad)}
+.grade{display:inline-block;font-size:13px;border:1px solid var(--accent);color:var(--accent);padding:2px 10px;border-radius:99px;margin-left:8px}
+.kv{display:grid;grid-template-columns:1fr 1fr;gap:6px 14px;margin:12px 0;font-size:13px}
+.kv div{background:#f7f5ef;border:1px solid var(--line);border-radius:9px;padding:7px 10px;display:flex;justify-content:space-between}
+@media(max-width:980px){.grid{grid-template-columns:1fr}.summary{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<!-- ============ 설정 화면 ============ -->
+<div id="setup" class="wrap">
+  <div class="hero">
+    <span class="tag">학술제 · 공존 시뮬레이션</span>
+    <h1>공존 테라포밍</h1>
+    <p>외계 행성에 정착한 인류가 그곳의 생태계와 함께 살아남을 수 있을까? 행성 환경에 적응하고 생태계를 유지하며 살아갈수록 점수가 올라갑니다. 인류만 살아남거나 생태계가 무너지면 게임 오버입니다.</p>
+    <p style="margin-top:10px"><button class="btn ghost sm" onclick="openHelp()">게임 방법 보기</button></p>
+  </div>
+
+  <div class="step">
+    <h2><span class="n">1</span>행성 선택</h2>
+    <div class="sub">행성마다 기본 환경과 중력·방사선이 다릅니다.</div>
+    <div class="cards" id="planets"></div>
+  </div>
+
+  <div class="step">
+    <h2><span class="n">2</span>환경 설정</h2>
+    <div class="sub">행성 기본값에서 시작하지만 직접 바꿀 수 있습니다. 평균과 다를수록 어려워지고 점수 배율이 올라갑니다.</div>
+    <div class="env">
+      <div><label>평균 기온 <b id="vT"></b></label><input type="range" id="rT" min="-30" max="50" step="1"></div>
+      <div><label>평균 습도 <b id="vH"></b></label><input type="range" id="rH" min="5" max="95" step="1"></div>
+      <div><label>중력 <b id="vG0"></b></label><input type="range" id="rG" min="0.5" max="2" step="0.1"></div>
+      <div><label>항성 방사선 <b id="vR0"></b></label><input type="range" id="rR" min="0" max="3" step="0.1"></div>
+      <div><label>계절 폭(자전축 기울기) <b id="vTi0"></b></label><input type="range" id="rTi" min="30" max="160" step="5"></div>
+      <div style="grid-column:1/-1"><label>기후 유형</label><div class="seg" id="climSeg"></div></div>
+      <div style="grid-column:1/-1"><button class="btn ghost sm" onclick="resetEnv()">행성 기본 환경으로 되돌리기</button> <span style="font-size:12px;color:var(--muted)">행성을 바꿔도 직접 바꾼 환경과 고른 종은 유지됩니다.</span></div>
+    </div>
+  </div>
+
+  <div class="step">
+    <h2><span class="n">3</span>도입할 생물종</h2>
+    <div class="sub">생산자와 1~4차 소비자마다 <b>2종</b>씩 고릅니다(같은 층의 두 종은 먹이·자리를 두고 경쟁합니다). 막대는 이 행성 환경에 대한 적합도이며, 맞지 않는 종도 일부러 고를 수 있습니다 — 점수 배율은 오르지만 온도·습도를 맞추지 못하면 멸종합니다. 시작 후 5년은 멸종 유예 기간입니다.</div>
+    <div id="species"></div>
+    <button class="btn ghost sm" onclick="autoSpecies()">환경에 맞게 자동 추천</button>
+  </div>
+
+  <div class="step">
+    <h2><span class="n">4</span>문명 수준</h2>
+    <div class="sub">높을수록 많은 개입이 가능하지만 인구와 자원 수요, 오염 위험도 커집니다.</div>
+    <div class="seg" id="civSeg"></div>
+  </div>
+
+  <div class="summary">
+    <div>
+      <h3>이 설정의 점수 배율</h3>
+      <div class="mrow"><span>문명 수준 배율</span><b id="mCiv"></b></div>
+      <div class="mrow"><span>기후 배율</span><b id="mClim"></b></div>
+      <div class="mrow"><span>환경 적합도 보정 (<span id="mMatch"></span>)</span><b id="mEnv"></b></div>
+      <div class="mrow" style="border-top:1px solid var(--line);margin-top:4px;padding-top:6px"><span>종합 배율</span><b id="mTot"></b></div>
+    </div>
+    <div style="text-align:center">
+      <div style="font-size:12.5px;color:var(--muted)" id="maxLabel">최대 점수</div>
+      <div class="maxscore" id="maxScore"></div>
+      <div style="font-size:12px;color:var(--muted);margin:2px 0 12px" id="maxNote"></div>
+      <div id="spWarn" style="color:var(--bad);font-size:12.5px;margin-bottom:8px"></div>
+      <button class="btn" id="bGo" onclick="if(speciesReady())openMission()">사전 미션으로 →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 게임 화면 ============ -->
+<div id="game" class="wrap hidden">
+  <div class="top">
+    <div class="l">
+      <span class="pn" id="gPlanet"></span>
+      <span class="stat">경과 <b id="gYear">0</b>년</span>
+      <span class="stat">점수 <b id="gScore">0</b></span>
+      <span class="stat">공존 가산 <b id="gBonus" style="color:var(--accent)">0</b></span>
+      <span class="stat">연속 공존 <b id="gStreak">0</b>년</span>
+    </div>
+    <div class="r">
+      <button id="bPause" onclick="togglePause()">일시정지</button>
+      <button data-sp="1" class="sel">1x</button><button data-sp="2">2x</button><button data-sp="4">4x</button><button data-sp="8">8x</button>
+      <button onclick="openHelp()">?</button>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div style="display:flex;flex-direction:column;gap:12px;min-width:0">
+      <div class="box">
+        <h3><span>행성 지도</span><span class="views" id="views"><button data-v="eco" class="sel">생태</button><button data-v="temp">기온</button><button data-v="hum">습도</button></span></h3>
+        <div id="mapwrap"><canvas id="map" width="800" height="480"></canvas><div id="banner"></div></div>
+      </div>
+      <div class="box">
+        <h3><span>개체 수 변화 (로그 스케일)</span><span id="envnow" style="font-weight:400"></span></h3>
+        <canvas id="chart" width="800" height="170"></canvas>
+        <div class="legend" id="legend"></div>
+      </div>
+      <div class="box">
+        <h3>행성 일지</h3>
+        <div id="log"></div>
+      </div>
+    </div>
+
+    <div class="side">
+      <div class="box">
+        <h3>공존 지수</h3>
+        <div class="ci"><span>생태계 × 인류의 균형</span><b id="ciV">0</b></div>
+        <div class="bar" style="margin:6px 0 10px"><i id="ciB" style="background:linear-gradient(90deg,#1f9d77,#2a74c9)"></i></div>
+        <div class="meter"><div class="mh"><span>생태계 건강</span><b id="eiV"></b></div><div class="bar"><i id="eiB" style="background:var(--l0)"></i></div></div>
+        <div class="meter"><div class="mh"><span>인류 안정</span><b id="hiV"></b></div><div class="bar"><i id="hiB" style="background:var(--accent2)"></i></div></div>
+        <div class="meter" style="margin-bottom:0"><div class="mh"><span>오염도</span><b id="polV"></b></div><div class="bar"><i id="polB" style="background:var(--warn)"></i></div></div>
+      </div>
+
+      <div class="box pyr">
+        <h3>생태 피라미드</h3>
+        <div id="pyr"></div>
+      </div>
+
+      <div class="box">
+        <h3>인류 정착지 · <span id="civName" style="color:var(--text)"></span></h3>
+        <div class="hum">
+          <div>인구 <b id="hPop"></b></div><div>자원 <b id="hRes"></b></div>
+          <div>공급 <b id="hSup"></b>/틱</div><div>수요 <b id="hDem"></b>/틱 <span id="hGrow" style="color:var(--muted)"></span></div>
+        </div>
+        <div class="grp">생산 · 자원을 얻는다</div>
+        <div class="sl"><label>식물 채집 <b id="vG"></b></label><input type="range" id="sG" min="0" max="100" value="90"><div class="pc"><span style="color:var(--good)">＋ 식량 공급↑</span><br><span style="color:var(--bad)">－ 식물 감소 · 땅 지력 저하(회복 느림)</span></div></div>
+        <div class="sl"><label>동물 수렵 <b id="vHu"></b></label><input type="range" id="sHu" min="0" max="100" value="90"><div class="pc"><span style="color:var(--good)">＋ 식량 공급↑(채집보다 큼)</span><br><span style="color:var(--bad)">－ 사냥당한 층 급감 → 위 포식자 굶주림</span></div></div>
+        <div class="sl"><label>수렵 대상 <b id="vBi"></b></label><input type="range" id="sBi" min="0" max="100" value="50"><div class="pc"><span style="color:var(--good)">＋ 초식 위주: 식물 회복 / 포식 위주: 초식 폭증 방지</span><br><span style="color:var(--bad)">－ 고른 쪽 층이 줄어 먹이사슬이 끊길 위험</span></div><div class="hint">왼쪽: 1차 소비자(초식) 위주 · 오른쪽: 2차 소비자(포식) 위주</div></div>
+        <div class="sl"><label>산업 가동 <b id="vI"></b></label><input type="range" id="sI" min="0" max="100" value="80"><div class="pc"><span style="color:var(--good)">＋ 자원 공급↑ (기술이 높을수록 효율↑)</span><br><span style="color:var(--bad)">－ 오염↑ · 산업 폐열로 기온↑</span></div></div>
+        <div class="grp">보전 · 자원을 써서 환경을 지킨다</div>
+        <div class="sl"><label>오염 정화 <b id="vPu"></b></label><input type="range" id="sPu" min="0" max="100" value="0"><div class="pc"><span style="color:var(--good)">＋ 오염 감소</span><br><span style="color:var(--bad)">－ 노동력 소모(채집·수렵·산업↓) · 자원 소모</span></div><div class="hint">자원을 계속 소모해 오염을 줄입니다</div></div>
+        <div class="sl"><label>식생 복원(조림) <b id="vFo"></b></label><input type="range" id="sFo" min="0" max="100" value="0"><div class="pc"><span style="color:var(--good)">＋ 식생 증가 · 오염 흡수</span><br><span style="color:var(--bad)">－ 노동력 소모 · 개발 공간 감소(산업·건설·인구 한도↓)</span></div><div class="hint">적합한 식물을 곳곳에 심습니다</div></div>
+        <div class="grp">사회 정책</div>
+        <div class="sl"><label>배급·절약 <b id="vRa"></b></label><input type="range" id="sRa" min="0" max="100" value="0"><div class="pc"><span style="color:var(--good)">＋ 식량 수요↓</span><br><span style="color:var(--bad)">－ 사기·영양 저하 → 인구 정체·감소 · 안정↓</span></div><div class="hint">소비를 줄이지만 사회 안정이 떨어집니다</div></div>
+        <div class="sl"><label>출산 정책 <b id="vBr"></b></label><input type="range" id="sBr" min="0" max="100" value="50"><div class="pc"><span style="color:var(--good)">＋ 인구 증가↑ (노동·점수↑)</span><br><span style="color:var(--bad)">－ 식량 수요↑ · 인구 밀도로 오염↑</span></div><div class="hint">높을수록 인구가 빨리 늘고 식량 수요도 커집니다</div></div>
+        <div class="grp">공존 · 인류를 이 행성에 맞추고, 생물과 관계를 맺는다</div>
+        <div class="sl"><label>인류 적응(생체 개조) <b id="vAd"></b></label><input type="range" id="sAd" min="0" max="100" value="0"><div class="pc"><span style="color:var(--good)">＋ 채집 효율↑ · 식량 수요↓ (오래 걸림)</span><br><span style="color:var(--bad)">－ 개조 부담: 인구 증가↓·안정↓ · 비용 급증</span></div><div class="hint" id="hAd"></div></div>
+        <div class="sl"><label>공생·동화(길들이기) <b id="vSy"></b></label><input type="range" id="sSy" min="0" max="100" value="0"><div class="pc"><span style="color:var(--good)">＋ 동물 보호 · 죽이지 않고 자원 획득</span><br><span style="color:var(--bad)">－ 정착지 주변 식생 과식 · 유지 자원</span></div><div class="hint" id="hSy"></div></div>
+        <div class="grp">투자 · 자원을 써서 미래를 만든다</div>
+        <div class="sl"><label>개발(기술) <b id="vD"></b></label><input type="range" id="sD" min="0" max="100" value="10"><div class="pc"><span style="color:var(--good)">＋ 기술↑: 효율↑ · 오염↓ (장기)</span><br><span style="color:var(--bad)">－ 개발 부산물로 오염↑ · 자원 소모</span></div><div class="hint" id="hD"></div></div>
+        <div class="sl"><label>교육 <b id="vE"></b></label><input type="range" id="sE" min="0" max="100" value="10"><div class="pc"><span style="color:var(--good)">＋ 교육↑: 수요·출산 억제로 안정</span><br><span style="color:var(--bad)">－ 학교 운영 부담으로 수요↑ · 자원 소모</span></div><div class="hint" id="hE"></div></div>
+        <div class="sl" style="margin-bottom:0"><label>건설 <b id="vB"></b></label><input type="range" id="sB" min="0" max="100" value="30"><div class="pc"><span style="color:var(--good)">＋ 인구 한도↑ · 온실 공급</span><br><span style="color:var(--bad)">－ 서식지 잠식 · 유지비 · 건설 오염</span></div><div class="hint" id="hB"></div></div>
+      </div>
+
+      <div class="box">
+        <h3>테라포밍 개입 <span id="resNow" style="font-weight:400"></span></h3>
+        <div class="acts" id="acts"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- 모달 -->
+<div id="modalHelp" class="modal hidden" onclick="if(event.target===this)closeHelp()">
+  <div class="mbox">
+    <h2>게임 방법</h2>
+    <p><b>목표</b> 인류와 행성 생태계가 <b>최대한 오래, 최대한 잘</b> 함께 살아남는 것. 끝이 정해져 있지 않아서, 얼마나 오래 공존했는지가 점수로 쌓입니다.</p>
+    <ul>
+      <li><b>공존 지수</b> = √(생태계 건강 × 인류 안정). 한쪽만 높아서는 점수가 오르지 않습니다.</li>
+      <li><b>생산</b> — 채집(식물), 수렵(동물), 산업(오염 발생)으로 자원을 얻습니다. 작은 변화에도 먹이사슬과 기후가 크게 흔들립니다.</li>
+      <li><b>투자</b> — 개발은 기술을 올려 같은 활동에서 더 많이 얻고 오염을 줄입니다. 교육은 1인당 소비와 인구 증가를 줄입니다. 건설은 온실 공급과 인구 한도를 늘리는 대신 정착지 주변 서식지를 없앱니다.</li>
+      <li>투자는 식량 수요를 채우고 남은 자원으로만 진행됩니다. 소비 압력은 해마다 커지기 때문에 가만히 있으면 점점 힘들어집니다.</li>
+      <li>남는 자원으로 온도·습도 조절, 식생 복원, 종 도입, 보호구역, 녹지 환원 같은 <b>테라포밍 개입</b>도 할 수 있습니다.</li>
+    </ul>
+    <p><b>공존 가산점</b></p>
+    <ul>
+      <li>생태계 건강 55% 이상, 인류 안정 60% 이상인 <b>공존 상태</b>가 이어지면 가산점이 붙습니다. 연속 8년이면 최대 +60%.</li>
+      <li>10년 연속으로 공존할 때마다 마일스톤 보너스가 들어옵니다.</li>
+    </ul>
+    <p><b>게임 오버</b> (직접 끝낼 수는 없습니다)</p>
+    <ul>
+      <li><b>모든 슬라이더는 양면성</b>이 있습니다. 올리면 이득이 늘지만 대가도 함께 커져서, 대부분 중간쯤에서 가장 좋고 끝까지 올리면 오히려 손해입니다. 각 슬라이더 밑의 ＋/－ 설명을 보세요.</li>
+      <li><b>인류 적응·공생</b>: 인류를 외계 환경에 맞추는 '적응'(생체 개조)을 키우면 외계 생물을 더 잘 소화해 같은 채집·수렵에서 더 많이 얻고 식량 수요가 줄어듭니다. '공생·동화'를 키우면 정착지 주변의 동물이 보호받고 죽이지 않고도 자원을 내놓습니다. 둘 다 자원을 계속 써야 오르고, 멈추면 서서히 줄며, 공존 가산점도 늘려 줍니다.</li>
+      <li><b>동면 진화</b>: 소비자는 환경이 맞지 않으면 동면(지도에서 파란 테두리, 💤)에 들어갑니다. 동면 직전에는 배불러도 최대한 먹어 에너지를 비축하고, 동면 중에는 에너지를 거의 쓰지 않지만 포식자에게 쉽게 잡힙니다. 나쁜 환경이 이어지면 몇 해 만에 더 쉽게 동면하도록 진화하고, 환경이 좋아지면 다시 퇴화합니다. 동면 중에는 번식하지 않으므로 환경을 너무 오래 망가뜨리면 소용없습니다.</li>
+      <li>생산자나 소비자 중 <b>한 종이라도 멸종</b>하면 즉시 종료됩니다. 인류만 남으면 "나만 생존" 엔딩입니다.</li>
+      <li>인구가 <b>최고치의 절반 아래</b>로 급감하면 종료됩니다.</li>
+      <li>시작 슬라이더는 일부러 높게 설정되어 있습니다. 가만히 두면 오래 가지 못해요.</li>
+    </ul>
+    <p style="color:var(--muted);font-size:12.5px">상위 소비자 수가 적은 것은 정상입니다(에너지 전달 효율). 개체 수가 크게 줄면 일지에 경고가 뜹니다. 지도를 클릭해 보호구역을 지정할 수 있어요.</p>
+    <p style="text-align:right"><button class="btn sm" onclick="closeHelp()">닫기</button></p>
+  </div>
+</div>
+
+
+<div id="modalMission" class="modal hidden">
+  <div class="mbox">
+    <h2>사전 미션 · 지구 궤도 진입</h2>
+    <p>외계 행성으로 가는 첫걸음입니다. <b>Spaceflight Simulator</b>에서 로켓을 설계하고 발사해 <b>지구 위 안정적인 궤도</b>에 올려 보세요.</p>
+    <ul>
+      <li>궤도 진입에 성공한 화면을 스태프에게 보여 주세요.</li>
+      <li>스태프가 확인하면 <b>확인 PIN</b>을 입력해 정착지로 출발합니다.</li>
+      <li>미션 성공 보너스: 시작 자원 +30%</li>
+    </ul>
+    <div class="env" style="grid-template-columns:1fr;margin:12px 0">
+      <div><label>이름 또는 팀 이름</label><input id="mName" maxlength="14" autocomplete="off" style="width:100%;background:#f7f5ef;border:1px solid var(--line);border-radius:9px;padding:9px;color:var(--text);font:inherit"></div>
+      <div><label>스태프 확인 PIN</label><input id="mPin" type="password" inputmode="numeric" autocomplete="off" style="width:100%;background:#f7f5ef;border:1px solid var(--line);border-radius:9px;padding:9px;color:var(--text);font:inherit"></div>
+    </div>
+    <p id="mErr" style="color:var(--bad);font-size:13px;min-height:18px;margin:0"></p>
+    <p style="display:flex;gap:8px;justify-content:flex-end"><button class="btn ghost sm" onclick="closeMission()">돌아가기</button><button class="btn sm" onclick="confirmMission()">확인 후 출발</button></p>
+  </div>
+</div>
+
+<div id="modalStaff" class="modal hidden">
+  <div class="mbox">
+    <h2>스태프 점수 검증</h2>
+    <p>스프레드시트에 붙여 넣은 한 줄(탭으로 구분)을 입력하면 확인 코드가 맞는지 검사합니다.</p>
+    <textarea id="stRow" rows="3" style="width:100%;background:#f7f5ef;border:1px solid var(--line);border-radius:9px;padding:9px;color:var(--text);font:inherit" placeholder="이름 ⇥ 행성 ⇥ 문명 ⇥ 결과 ⇥ 생존년수 ⇥ 점수 ⇥ 시드 ⇥ 코드"></textarea>
+    <p id="stRes" style="font-size:15px;font-weight:700;min-height:22px"></p>
+    <p style="display:flex;gap:8px;justify-content:flex-end"><button class="btn ghost sm" onclick="document.getElementById('modalStaff').classList.add('hidden')">닫기</button><button class="btn sm" onclick="verifyRow()">검증</button></p>
+  </div>
+</div>
+
+<div id="modalEnd" class="modal hidden">
+  <div class="mbox" id="endBox"></div>
+</div>
+
+<script>
+'use strict';
+/* ===== 공존 테라포밍 : 시뮬레이션 엔진 ===== */
+const GW = 80, GH = 48, N = GW * GH, TPY = 20, EMAX = 100;
+
+const NICHES = [
+  { id: 'cold', label: '한랭 습윤', T: 2, H: 65 },
+  { id: 'temp', label: '온난 중습', T: 18, H: 52 },
+  { id: 'arid', label: '고온 건조', T: 33, H: 22 },
+  { id: 'wet', label: '고온 다습', T: 27, H: 82 },
+];
+const LEVEL_LABEL = ['생산자', '1차 소비자', '2차 소비자', '3차 소비자', '4차 소비자'];
+const NAMES = [
+  ['설원 이끼', '은빛 잎새', '열사 가시초', '늪 덩굴'],
+  ['빙벌레', '잎갉이', '모래메뚜기', '늪달팽이'],
+  ['서리쥐', '들갉쥐', '사구도마뱀', '늪개구리'],
+  ['서리여우', '숲살쾡이', '사막뱀', '늪수달'],
+  ['설원늑대', '숲맹금', '사막독수리', '늪악어'],
+];
+const LV_COLOR = ['#4caf6a', '#f2d64b', '#f29a3d', '#e5483f', '#b05cf0'];
+
+const PLANETS = [
+  { id: 'proxima', name: '프록시마 b', tag: '적색왜성 · 조석고정', desc: '차갑고 습한 세계. 잦은 항성 플레어와 높은 방사선이 생태계를 위협한다.',
+    T: 2, H: 62, climate: 2, g: 1.1, rad: 2.5, color: '#c9533d' },
+  { id: 'trappist', name: '트라피스트-1e', tag: '온화한 물 행성', desc: '물이 풍부하고 기온이 온화하다. 계절 변동이 있으나 초보자에게 가장 무난하다.',
+    T: 16, H: 76, climate: 1, g: 0.9, rad: 1.0, color: '#3d8fc9' },
+  { id: 'kepler', name: '케플러-452b', tag: '슈퍼지구 · 고중력', desc: '안정된 기후의 큰 행성. 중력이 커서 생물의 에너지 소모가 많다.',
+    T: 24, H: 48, climate: 0, g: 1.6, rad: 0.6, color: '#c9a33d' },
+  { id: 'arida', name: '아리다 (가상)', tag: '사막 행성', desc: '건조하고 뜨거운 가상 행성. 극단적인 기후 변동 속에서 물을 어떻게 다룰지가 관건이다.',
+    T: 33, H: 20, climate: 2, g: 0.8, rad: 1.5, color: '#d9783a' },
+];
+const CLIMATES = [
+  { id: 0, name: '안정형', amp: 3, ev: 0.0, mult: 1.0, desc: '계절 변화가 작고 이상기후가 없다' },
+  { id: 1, name: '계절 변동형', amp: 8, ev: 0.10, mult: 1.2, desc: '뚜렷한 계절, 가끔 이상기후' },
+  { id: 2, name: '극단형', amp: 13, ev: 0.28, mult: 1.45, desc: '큰 변동, 잦은 폭염·한파·가뭄·호우' },
+];
+const CIVS = [
+  { name: '개척 정착단', P0: 30, cap: 100, hv: 68, ind: 3, pe: 0.00040, mult: 1.0, desc: '소규모 정착. 기본 개입만 가능' },
+  { name: '초기 식민지', P0: 60, cap: 220, hv: 66, ind: 6, pe: 0.00032, mult: 1.2, desc: '오염 정화·보호구역 해금' },
+  { name: '산업 도시', P0: 120, cap: 450, hv: 58, ind: 11, pe: 0.00022, mult: 1.45, desc: '기후 안정화 해금' },
+  { name: '행성 문명', P0: 240, cap: 850, hv: 64, ind: 20, pe: 0.00014, mult: 1.75, desc: '대규모 지구공학 해금' },
+  { name: '항성 문명', P0: 480, cap: 1500, hv: 70, ind: 34, pe: 0.00009, mult: 2.1, desc: '최대 규모. 수요와 오염도 최대' },
+];
+const DPC = 0.05;
+const ALPHA = 0.4, PK = 0.7; // 식물 종간 경쟁 계수(종내 경쟁보다 약함)와 종별 수용량
+const DEFAULTS = { adaptS: 0, symbS: 0, bias: 0.5, purify: 0, forest: 0, ration: 0, birth: 0.5, gather: 0.9, hunt: 0.9, industry: 0.8, dev: 0.1, school: 0.1, build: 0.3 };
+const SX = 10, SY = 24; // 정착지 중심 칸
+
+/* 종 파라미터 (레벨 1~4) */
+const MET = [0, 1.0, 0.43, 0.29, 0.24];
+const GAIN = [0, 0, 35, 45, 53];
+const CATCH = [0, 0, 0.37, 0.66, 0.49];
+const GP = 35;
+const PREP = [0, 0.285, 0.075, 0.093, 0.057];
+const PDIE = [0, 0.0096, 0.0067, 0.0076, 0.0052];
+const VIS = [0, 1, 2, 3, 4];
+const REPT = [0, 62, 80, 84, 88], SAT = 80, MOVEC = 0.15, INTF = [0, 0, 0.0035, 0.004, 0.004];
+const MINV = [250, 20, 8, 4, 3];
+const RESC = [0, 0.06, 0.06, 0.06, 0.06]; // 서식지 피난처에서의 소규모 재유입 확률/틱 // 건강한 최소 개체 수(생산자는 식생 칸 수)
+
+function josa(w, a, b) { const c = w.charCodeAt(w.length - 1) - 0xAC00; return w + ((c >= 0 && c % 28 !== 0) ? a : b); }
+function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+
+const FK = 8; // 생태적 지위 경쟁 강도: 클수록 한 환경에서 한 종이 압도(99:1), 비슷하면 50:50
+function gaussFit(T, H, lv, ni) {
+  const n = NICHES[ni]; const sT = lv === 0 ? 12 : 14, sH = lv === 0 ? 26 : 32;
+  const a = (T - n.T) / sT, b = (H - n.H) / sH;
+  return Math.exp(-0.5 * (a * a + b * b));
+}
+function fitRaw(T, H, lv, ni) {
+  let sum = 0, mx = 0, mine = 0;
+  for (let m = 0; m < 4; m++) { const g = gaussFit(T, H, lv, m); if (g > mx) mx = g; const p = Math.pow(g, FK); sum += p; if (m === ni) mine = p; }
+  const share = sum > 1e-30 ? mine / sum : 0;
+  return share * Math.min(1, mx / 0.5);
+}
+
+/* 적합도 조회표: 매 틱 수만 번 호출되므로 미리 계산 (온도 0.5℃ · 습도 1% 간격) */
+const FT0 = -60, FTN = 281, FHN = 111;
+let FTAB = null;
+function buildFitTable() {
+  FTAB = new Float32Array(5 * 4 * FTN * FHN);
+  for (let lv = 0; lv < 5; lv++) for (let ni = 0; ni < 4; ni++) {
+    const base = (lv * 4 + ni) * FTN * FHN;
+    for (let a = 0; a < FTN; a++) for (let h = 0; h < FHN; h++) FTAB[base + a * FHN + h] = fitRaw(FT0 + a * 0.5, h - 5, lv, ni);
+  }
+}
+function fit(T, H, lv, ni) {
+  if (!FTAB) buildFitTable();
+  let a = Math.round((T - FT0) * 2), h = Math.round(H + 5);
+  a = a < 0 ? 0 : a >= FTN ? FTN - 1 : a; h = h < 0 ? 0 : h >= FHN ? FHN - 1 : h;
+  return FTAB[(lv * 4 + ni) * FTN * FHN + a * FHN + h];
+}
+
+function makeField(rng, blur) {
+  let a = new Float32Array(N), b = new Float32Array(N);
+  for (let i = 0; i < N; i++) a[i] = rng();
+  for (let k = 0; k < blur; k++) {
+    for (let y = 0; y < GH; y++) for (let x = 0; x < GW; x++) {
+      let s = 0;
+      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) s += a[((y + dy + GH) % GH) * GW + (x + dx + GW) % GW];
+      b[y * GW + x] = s / 9;
+    }
+    const t = a; a = b; b = t;
+  }
+  let mn = 1e9, mx = -1e9;
+  for (let i = 0; i < N; i++) { if (a[i] < mn) mn = a[i]; if (a[i] > mx) mx = a[i]; }
+  for (let i = 0; i < N; i++) a[i] = (a[i] - mn) / (mx - mn + 1e-9);
+  return a;
+}
+
+/* 설정 → 환경 적합도 평균 및 점수 배율 */
+function matchScore(cfg) {
+  const pl = cfg.planet; let s = 0, c = 0;
+  for (let k = 0; k <= 10; k++) {
+    const d = k / 10; const T = pl.T + 4 - 14 * d; const H = pl.H;
+    for (let lv = 0; lv < 5; lv++) for (let v = 0; v < 2; v++) { s += fit(T, H, lv, cfg.species[lv][v]); c++; }
+  }
+  return s / c;
+}
+function scoreMult(cfg) {
+  const m = matchScore(cfg);
+  const env = 1 + (1 - m) * 0.8;
+  return { match: m, env, civ: CIVS[cfg.civ].mult, clim: CLIMATES[cfg.planet.climate].mult,
+    total: CIVS[cfg.civ].mult * CLIMATES[cfg.planet.climate].mult * env * (1 + 0.15 * Math.max(0, cfg.planet.g - 1) + 0.06 * Math.max(0, cfg.planet.rad - 1) + 0.1 * Math.max(0, (cfg.planet.tilt || 1) - 1)) };
+}
+
+class Sim {
+  constructor(cfg) {
+    this.cfg = cfg; const pl = cfg.planet;
+    this.rng = mulberry32(cfg.seed || ((Date.now() & 0xffffffff) >>> 0));
+    this.civIdx = cfg.civ; this.civ = CIVS[cfg.civ];
+    this.sp = cfg.species.map(a => a.slice());
+    this.T0 = pl.T; this.H0 = pl.H; this.Tg = pl.T; this.Tt = pl.T; this.Hg = pl.H; this.Ht = pl.H;
+    this.clim = CLIMATES[pl.climate]; this.grav = pl.g; this.rad = pl.rad;
+    this.gF = Math.pow(pl.g, 0.8);
+    this.targetYears = 0;
+    this.mult = scoreMult(cfg);
+    const r = this.rng;
+    const nT = makeField(r, 6), nH = makeField(r, 7), nF = makeField(r, 5);
+    this.offT = new Float32Array(N); this.offH = new Float32Array(N); this.fert = new Float32Array(N); this.fert0 = new Float32Array(N);
+    for (let y = 0; y < GH; y++) {
+      const d = Math.abs(y - (GH - 1) / 2) / ((GH - 1) / 2);
+      for (let x = 0; x < GW; x++) {
+        const i = y * GW + x;
+        this.offT[i] = 4 - 14 * d + (nT[i] - 0.5) * 5;
+        this.offH[i] = (nH[i] - 0.5) * 30;
+        this.fert[i] = 0.55 + 0.45 * nF[i]; this.fert0[i] = this.fert[i];
+      }
+    }
+    this.plant = new Float32Array(N); this.pa = new Float32Array(N); this.pb = new Float32Array(N); this.vr = new Uint8Array(N); this.type = new Uint8Array(N); this.en = new Float32Array(N);
+    this.stamp = new Int32Array(N).fill(-1); this.reserve = new Uint8Array(N); this.list = new Int32Array(N);
+    this.fitMap = new Float32Array(N);
+    this.tick = 0; this.season = 0; this.ev = null; this.evT = 0; this.evH = 0; this.radStorm = 0;
+    this.pollution = 0; this.stabLeft = 0;
+    // 인류
+    this.P0 = this.civ.P0; this.pop = this.P0;
+    this.costScale = this.civ.P0 / 30;
+    this.res = 20 * this.costScale; this.resMax = 400 * this.costScale;
+    this.gather = DEFAULTS.gather; this.hunt = DEFAULTS.hunt; this.industry = DEFAULTS.industry;
+    this.bias = DEFAULTS.bias; this.purify = DEFAULTS.purify; this.forest = DEFAULTS.forest; this.ration = DEFAULTS.ration; this.birth = DEFAULTS.birth;
+    this.dev = DEFAULTS.dev; this.school = DEFAULTS.school; this.build = DEFAULTS.build;
+    this.adaptS = 0; this.symbS = 0; this.adapt = 0; this.symb = 0; this.symSup = 0; this.tech = 0; this.edu = 0; this.built = 0; this.zoneR = 0; this.growth = 1; this.greenNow = 0; this.ciSum = 0; this.streak = 0; this.maxStreak = 0; this.bonus = 0; this.msDone = 0; this.peakPop = this.P0; this.popWarn = 0; this.endangered = [];
+    this.hvYield = 2 * this.P0 * DPC / (this.civ.hv * 5 * 0.6);
+    this.wS = 1; this.supplyNow = 0; this.demandNow = 0;
+    // 통계
+    this.counts = [0, 0, 0, 0, 0]; this.ema = [0, 0, 0, 0, 0]; this.emv = [0, 0, 0, 0, 0];
+    this.EI = 1; this.HI = 1; this.CI = 1; this.cover = 0; this.stab = 1; this.pyr = 1; this.compl = 1;
+    this.score = 0; this.over = null; this.log = []; this.reserves = 0;
+    this.hist = []; this.warned = new Array(10).fill(0); this.hs = new Uint8Array(N); this.hib = [0,1,2,3,4].map(()=>[0.12,0.12]); this.fs = [0,1,2,3,4].map(()=>[0,0]); this.fn = [0,1,2,3,4].map(()=>[0,0]); this.hbc = [0,1,2,3,4].map(()=>[0,0]); this.hibSaid = [0,1,2,3,4].map(()=>[0,0]); this.polluteWarn = 0;
+    // 초기 배치
+    for (let i = 0; i < N; i++) { const T = this.localT(i), H = this.localH(i), fA = fit(T, H, 0, this.sp[0][0]), fB = fit(T, H, 0, this.sp[0][1]), w = (fA + 0.05) / (fA + fB + 0.1); this.pa[i] = 0.5 * w; this.pb[i] = 0.5 * (1 - w); this.plant[i] = 0.5; }
+    this.cv = [[0, 0], [0, 0], [0, 0], [0, 0], [0, 0]];
+    const init = cfg.initCounts || [0, 300, 70, 20, 8];
+    for (let lv = 1; lv <= 4; lv++) this.seed(lv, init[lv], 55);
+    for (let k = 0; k < 6; k++) this.stats(true);
+  }
+  say(msg, kind) { this.log.push({ y: this.year(), msg, kind: kind || 'info' }); if (this.log.length > 60) this.log.shift(); }
+  year() { return this.tick / TPY; }
+  seed(lv, n, e, variant) {
+    let placed = 0, tries = 0;
+    while (placed < n && tries < n * 40) {
+      tries++; const v = variant === undefined ? (placed & 1) : variant;
+      let bi = -1, bf = -1;
+      for (let k = 0; k < 8; k++) { const i = (this.rng() * N) | 0; if (this.type[i] !== 0) continue; const f = fit(this.localT(i), this.localH(i), lv, this.sp[lv][v]); if (f > bf) { bf = f; bi = i; } }
+      if (bi < 0) continue;
+      this.type[bi] = lv; this.vr[bi] = v; this.en[bi] = e || 55; this.hs[bi] = 0; placed++;
+    }
+    return placed;
+  }
+  takePlant(i, amt) {
+    // 먹이 전환: 흔한 종을 더 많이 먹으므로 드문 종이 보호된다
+    const a = this.pa[i], b = this.pb[i], tot = a + b; if (tot <= 0) return 0;
+    const t = Math.min(amt, tot), wa = a * a, wb = b * b, s = wa + wb;
+    let ta = t * wa / s, tb = t * wb / s;
+    if (ta > a) { tb += ta - a; ta = a; } if (tb > b) { ta += tb - b; tb = b; }
+    this.pa[i] = Math.max(0, a - ta); this.pb[i] = Math.max(0, b - tb); this.plant[i] = this.pa[i] + this.pb[i]; return t;
+  }
+  ampEff() { return this.clim.amp * (this.cfg.planet.tilt || 1) * (this.stabLeft > 0 ? 0.6 : 1); }
+
+  stepEnv() {
+    const t = this.tick, r = this.rng;
+    this.season = this.ampEff() * Math.sin(2 * Math.PI * t / TPY);
+    // 이상기후
+    if (this.ev) {
+      this.ev.left--; const k = this.ev.left / this.ev.dur; const env = Math.sin(Math.PI * (1 - k));
+      this.evT = this.ev.dT * env; this.evH = this.ev.dH * env; this.radStorm = this.ev.rad ? env : 0;
+      if (this.ev.left <= 0) { this.say(this.ev.name + ' 종료', 'info'); this.ev = null; this.evT = 0; this.evH = 0; this.radStorm = 0; }
+    } else if (this.clim.ev > 0) {
+      const p = this.clim.ev / TPY * (this.stabLeft > 0 ? 0.4 : 1);
+      if (r() < p) {
+        const list = [{ name: '폭염', dT: 9, dH: -5 }, { name: '한파', dT: -9, dH: 0 }, { name: '가뭄', dT: 2, dH: -24 }, { name: '호우', dT: -1, dH: 24 }];
+        if (this.rad >= 1.5) list.push({ name: '항성 플레어(방사선 폭풍)', dT: 0, dH: 0, rad: 1 });
+        const e = list[(r() * list.length) | 0];
+        this.ev = { name: e.name, dT: e.dT, dH: e.dH, rad: !!e.rad, dur: 40, left: 40 };
+        this.say('이상기후 발생: ' + e.name + '!', 'warn');
+      }
+    }
+    if (this.stabLeft > 0) this.stabLeft--;
+    this.Tg += (this.Tt - this.Tg) * 0.05; this.Hg += (this.Ht - this.Hg) * 0.05;
+    if (t % 4 === 0) for (let i = 0; i < N; i++) this.fert[i] += (this.fert0[i] - this.fert[i]) * 0.012;   // 지력 회복(과채집하면 땅이 지침)
+    this.pollution = Math.max(0, this.pollution * 0.997 - 0.00002);
+  }
+
+  localT(i) { return this.Tg + this.offT[i] + this.season + this.evT + 12 * this.pollution * (this.reserve[i] ? 0.4 : 1); }
+  localH(i) { let h = this.Hg + this.offH[i] + this.evH - 28 * this.pollution * (this.reserve[i] ? 0.4 : 1); return h < 0 ? 0 : h > 100 ? 100 : h; }
+
+  stepPlants() {
+    const plant = this.plant, pa = this.pa, pb = this.pb, rng = this.rng, fm = this.fitMap;
+    const sA = this.sp[0][0], sB = this.sp[0][1];
+    const radF = Math.max(0.2, 1 - 0.07 * this.rad - 0.5 * this.radStorm);
+    for (let i = 0; i < N; i++) {
+      const T = this.localT(i), H = this.localH(i);
+      const fA = fit(T, H, 0, sA), fB = fit(T, H, 0, sB); fm[i] = fA > fB ? fA : fB;
+      const polF = 1 - 0.65 * this.pollution * (this.reserve[i] ? 0.4 : 1);
+      let a = pa[i], b = pb[i]; const P = a + b, k = 0.55 * this.fert[i] * radF * polF;
+      a += k * fA * a * (1 - (a + ALPHA * b) / PK) - 0.03 * (1 - fA) * a;
+      b += k * fB * b * (1 - (b + ALPHA * a) / PK) - 0.03 * (1 - fB) * b;
+      if (P < 0.12) {
+        const x = i % GW, y = (i / GW) | 0;
+        const j1 = y * GW + (x + 1) % GW, j2 = y * GW + (x + GW - 1) % GW, j3 = ((y + 1) % GH) * GW + x, j4 = ((y + GH - 1) % GH) * GW + x;
+        if (pa[j1] > 0.2 || pa[j2] > 0.2 || pa[j3] > 0.2 || pa[j4] > 0.2) a += 0.04 * fA * this.fert[i];
+        if (pb[j1] > 0.2 || pb[j2] > 0.2 || pb[j3] > 0.2 || pb[j4] > 0.2) b += 0.04 * fB * this.fert[i];
+        if (rng() < 0.0004) { if (fA >= fB) a += 0.05 * fA; else b += 0.05 * fB; }
+      }
+      if (a < 0) a = 0; if (b < 0) b = 0;
+      const S = a + b; if (S > 1) { a /= S; b /= S; }
+      pa[i] = a; pb[i] = b; plant[i] = a + b;
+    }
+  }
+
+  stepAnimals() {
+    const type = this.type, vr = this.vr, en = this.en, plant = this.plant, stamp = this.stamp, rng = this.rng, t = this.tick, list = this.list;
+    let n = 0;
+    for (let i = 0; i < N; i++) if (type[i]) list[n++] = i;
+    for (let k = n - 1; k > 0; k--) { const j = (rng() * (k + 1)) | 0; const tmp = list[k]; list[k] = list[j]; list[j] = tmp; }
+    const gF = this.gF, rad = this.rad, storm = this.radStorm;
+    const DX = [-1, 0, 1, -1, 1, -1, 0, 1], DY = [-1, -1, -1, 0, 0, 1, 1, 1];
+    const wrap = (x, y) => ((y + GH) % GH) * GW + (x + GW) % GW;
+    for (let k = 0; k < n; k++) {
+      const i = list[k]; const lv = type[i];
+      if (!lv || stamp[i] === t) continue;
+      stamp[i] = t;
+      const x = i % GW, y = (i / GW) | 0;
+      const vi = vr[i];
+      const f = fit(this.localT(i), this.localH(i), lv, this.sp[lv][vi]);
+      const hs = this.hs, thr = this.hib[lv][vi];
+      this.fs[lv][vi] += f; this.fn[lv][vi]++;
+      if (hs[i]) {   // 동면 중: 대사 최소화, 이동·사냥·번식 없음, 은신해서 환경 사망률도 낮음
+        if (f >= thr + 0.08) hs[i] = 0;
+        else { const e2 = en[i] - MET[lv] * 0.1; if (e2 <= 0 || rng() < PDIE[lv] * 0.5) { type[i] = 0; en[i] = 0; hs[i] = 0; } else en[i] = e2; continue; }
+      } else if (f < thr) { hs[i] = 1; continue; }
+      const prep = f < thr + 0.18;   // 동면 직전: 포만과 무관하게 최대한 먹어 에너지 비축
+      let e = en[i] - MET[lv] * gF * (1 + 1.5 * (1 - f));
+      const pd = PDIE[lv] * (1 + rad * 0.15 + storm * 3 + this.pollution * 1.5) * (1 + (1 - f));
+      let pdd = pd;
+      if (this.symb > 0.02 && lv <= 2) { const ddx = x - SX, ddy = y - SY, R = 4 + 10 * this.symb; if (ddx * ddx + ddy * ddy < R * R) pdd *= 1 - 0.6 * this.symb; }
+      if (lv >= 2) { let nb = 0; for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) { if (!dx && !dy) continue; if (type[wrap(x + dx, y + dy)] === lv) nb++; } pdd += INTF[lv] * nb; }
+      if (e <= 0 || rng() < pdd) { type[i] = 0; en[i] = 0; continue; }
+      let ni = i, cx = x, cy = y;
+      const moveTo = (j, nx, ny) => { type[j] = lv; vr[j] = vi; hs[j] = 0; stamp[j] = t; type[i] = 0; en[i] = 0; ni = j; cx = nx; cy = ny; e -= MOVEC; };
+      if (lv === 1) {
+        if (plant[i] < 0.25) {
+          let best = -1, bv = 0.25, bx = 0, by = 0; const s0 = (rng() * 8) | 0;
+          for (let q = 0; q < 8; q++) { const d = (q + s0) & 7; const nx = (x + DX[d] + GW) % GW, ny = (y + DY[d] + GH) % GH; const j = ny * GW + nx; if (type[j] === 0 && plant[j] > bv) { bv = plant[j]; best = j; bx = nx; by = ny; } }
+          if (best < 0) { const d = (rng() * 8) | 0; const nx = (x + DX[d] + GW) % GW, ny = (y + DY[d] + GH) % GH; const j = ny * GW + nx; if (type[j] === 0) { best = j; bx = nx; by = ny; } }
+          if (best >= 0) moveTo(best, bx, by);
+        }
+        if (plant[ni] >= 0.25) { const a = this.takePlant(ni, 0.2); e += a * GP; }
+      } else {
+        const R = VIS[lv]; let tj = -1, bd = 99, tdx = 0, tdy = 0, cnt = 0;
+        if (e < SAT || prep) {
+          for (let dy = -R; dy <= R; dy++) for (let dx = -R; dx <= R; dx++) {
+            if (!dx && !dy) continue; const j = wrap(x + dx, y + dy);
+            if (type[j] === lv - 1) {
+              const d = Math.max(Math.abs(dx), Math.abs(dy));
+              if (d < bd) { bd = d; tj = j; tdx = dx; tdy = dy; cnt = 1; }
+              else if (d === bd && rng() < 1 / (++cnt)) { tj = j; tdx = dx; tdy = dy; }
+            }
+          }
+        }
+        if (tj >= 0 && bd <= 1) { if (rng() < CATCH[lv] * (hs[tj] ? 2 : 1)) { type[tj] = 0; en[tj] = 0; e = Math.min(EMAX, e + GAIN[lv]); } }
+        else if (tj >= 0) {
+          const sx = Math.sign(tdx), sy = Math.sign(tdy);
+          const cands = [[sx, sy], [sx, 0], [0, sy]];
+          for (const [ax, ay] of cands) { if (!ax && !ay) continue; const nx = (x + ax + GW) % GW, ny = (y + ay + GH) % GH; const j = ny * GW + nx; if (type[j] === 0) { moveTo(j, nx, ny); break; } }
+        } else if (rng() < 0.7) {
+          const d = (rng() * 8) | 0; const nx = (x + DX[d] + GW) % GW, ny = (y + DY[d] + GH) % GH; const j = ny * GW + nx; if (type[j] === 0) moveTo(j, nx, ny);
+        }
+      }
+      if (!prep && e > REPT[lv] && rng() < PREP[lv] * f) {
+        const s0 = (rng() * 8) | 0;
+        for (let q = 0; q < 8; q++) { const d = (q + s0) & 7; const nx = (cx + DX[d] + GW) % GW, ny = (cy + DY[d] + GH) % GH; const j = ny * GW + nx; if (type[j] === 0) { type[j] = lv; vr[j] = vi; hs[j] = 0; en[j] = e / 2; stamp[j] = t; e /= 2; break; } }
+      }
+      en[ni] = e > EMAX ? EMAX : e;
+    }
+  }
+
+  rescue() {
+    if (this.pollution > 0.6) return;
+    const c = [0, 0, 0, 0, 0], cvf = [[0, 0], [0, 0], [0, 0], [0, 0], [0, 0]];
+    for (let i = 0; i < N; i++) { const t = this.type[i]; if (t) { c[t]++; cvf[t][this.vr[i]]++; } if (this.pa[i] > 0.1) cvf[0][0]++; if (this.pb[i] > 0.1) cvf[0][1]++; }
+    const best = (lv, v) => {
+      let bf = 0, bi = -1;
+      for (let k = 0; k < 24; k++) { const i = (this.rng() * N) | 0; if (lv > 0 && this.type[i] !== 0) continue; const f = fit(this.localT(i), this.localH(i), lv, this.sp[lv][v]); if (f > bf) { bf = f; bi = i; } }
+      return bf >= 0.06 ? bi : -1;
+    };
+    // 생산자: 서식지가 남아 있는 한 종마다 최소 식생을 유지
+    for (let v = 0; v < 2; v++) {
+      if (cvf[0][v] >= 60) continue;
+      const i = best(0, v); if (i < 0) continue;
+      if (v === 0) this.pa[i] = Math.max(this.pa[i], 0.35); else this.pb[i] = Math.max(this.pb[i], 0.35);
+      this.plant[i] = this.pa[i] + this.pb[i];
+    }
+    for (let lv = 1; lv <= 4; lv++) {
+      if (lv > 1 && c[lv - 1] < MINV[lv - 1] * 0.5) continue;
+      for (let v = 0; v < 2; v++) {
+        const n = cvf[lv][v], crit = n <= 2;
+        if (!crit && (n >= MINV[lv] * 0.35 || this.rng() >= RESC[lv])) continue;
+        const bi = best(lv, v); if (bi < 0) continue;
+        this.type[bi] = lv; this.vr[bi] = v; this.en[bi] = 60; this.hs[bi] = 0;
+      }
+    }
+  }
+
+  stepHuman() {
+    const civ = this.civ, rng = this.rng, type = this.type, plant = this.plant;
+    const D0 = this.P0 * DPC;
+    this.growth = 1 + 0.07 * this.year();             // 시간이 갈수록 커지는 소비 압력
+    const yEff = this.hvYield * (1 + this.tech) * (1 + 1.0 * this.adapt);        // 기술이 높을수록 같은 채집·수렵에서 더 많이 얻음
+    let supply = 0;
+    const lab = 1 - 0.4 * this.purify - 0.3 * this.forest;   // 정화·조림에 노동력을 돌리면 채집·수렵·산업 인력이 줄어듦
+    const kg = Math.round(civ.hv * 5 * this.gather * lab), kh = Math.round(civ.hv * 5 * this.hunt * lab);
+    for (let s = 0; s < kg; s++) { const i = (rng() * N) | 0; if (this.reserve[i]) continue; if (plant[i] > 0.3) { this.takePlant(i, 0.45); supply += yEff; this.fert[i] = Math.max(0.2, this.fert[i] - 0.12 * this.gather); } }
+    for (let s = 0; s < kh; s++) { const i = (rng() * N) | 0; if (this.reserve[i]) continue; const lv = type[i]; const want = rng() < this.bias ? 2 : 1; if (lv === want && rng() < 0.8) { type[i] = 0; this.en[i] = 0; supply += yEff * 2; } }
+    // 공생·동화: 정착지 가까이의 초식·소형 포식 동물과 살아 있는 채로 협력(젖·노동·정찰 등) — 죽이지 않고 얻는 공급
+    if (this.symb > 0.01) {
+      const R = Math.round(4 + 10 * this.symb); let cnt = 0;
+      for (let dy = -R; dy <= R; dy++) for (let dx = -R; dx <= R; dx++) { if (dx * dx + dy * dy > R * R) continue; const x = SX + dx, y = SY + dy; if (x < 0 || x >= GW || y < 0 || y >= GH) continue; const t = type[y * GW + x]; if (t === 1 || t === 2) cnt++; }
+      this.symSup = cnt * 0.5 * this.symb * yEff; supply += this.symSup;
+      const ng = Math.round(R * R * 0.6 * this.symb);   // 보호받는 초식동물이 정착지 주변 식생을 과식
+      for (let s = 0; s < ng; s++) { const a = rng() * 6.283, rr = Math.sqrt(rng()) * R; const x = Math.round(SX + Math.cos(a) * rr), y = Math.round(SY + Math.sin(a) * rr); if (x >= 0 && x < GW && y >= 0 && y < GH) this.takePlant(y * GW + x, 0.35 * this.symb); }
+    } else this.symSup = 0;
+    const prod = this.industry * civ.ind * (1 + 0.5 * this.tech) * lab * (1 - 0.4 * this.forest); supply += prod;   // 숲이 넓을수록 공장·시설을 지을 공간이 줄어듦
+    this.Tg += 0.02 * this.industry * (1 + civ.ind / 10);   // 산업 폐열
+    this.pollution = Math.min(1, this.pollution + 0.0004 * this.birth * this.pop / this.P0 + 0.0003 * this.build * this.built + prod * civ.pe * 3 * (1 - 0.6 * this.tech) * (1 + 0.8 * this.dev));
+    // 건설: 온실·수경재배(생태계와 무관한 공급) / 유지비 / 서식지 잠식
+    const green = this.built * 0.8 * D0; const upkeep = this.built * 0.3 * D0;
+    supply += green; this.greenNow = green;
+    const D = this.pop * DPC * this.growth * (1 - 0.4 * this.edu) * (1 + 0.3 * this.school) * (1 - 0.5 * this.adapt) * (1 - 0.35 * this.ration);
+    this.demandNow = D; this.supplyNow = supply;
+    let avail = this.res + supply - upkeep, w, left;
+    if (avail >= D) { left = avail - D; w = 1; } else { w = Math.max(0, avail) / D; left = 0; }
+    // 투자: 개발·교육·건설 (식량 수요를 채운 뒤 남는 자원으로)
+    const cDev = this.dev * 0.5 * D0, cEdu = this.school * 0.4 * D0, cCon = this.build * 0.6 * D0, cPur = this.purify * 0.5 * D0, cFor = this.forest * 0.5 * D0, cAd = this.adaptS * (0.5 + 0.8 * this.adaptS) * D0, cSy = this.symbS * 0.4 * D0, cTot = cDev + cEdu + cCon + cPur + cFor + cAd + cSy;
+    const f = cTot > 0 ? Math.min(1, left / cTot) : 0;
+    this.res = Math.max(0, Math.min(this.resMax, left - f * cTot));
+    this.pollution = Math.max(0, this.pollution - 0.006 * this.purify * f);
+    if (this.forest > 0 && f > 0) { const n = Math.round(40 * this.forest * f); for (let s = 0; s < n; s++) { const i = (rng() * N) | 0; if (this.type[i] === 0 || true) { const v = rng() < 0.5 ? 0 : 1; const tgt = v ? this.pb : this.pa; const fv = fit(this.localT(i), this.localH(i), 0, this.sp[0][v]); tgt[i] = Math.min(0.8, tgt[i] + 0.25 * fv); this.plant[i] = this.pa[i] + this.pb[i]; } } }
+    this.adapt += 0.006 * this.adaptS * f * (1 - this.adapt) - 0.0003 * this.adapt;
+    this.symb += 0.006 * this.symbS * f * (1 - this.symb) - 0.0008 * this.symb;
+    if (this.adapt < 0) this.adapt = 0; if (this.symb < 0) this.symb = 0;
+    this.pollution = Math.max(0, this.pollution - 0.003 * this.forest * f);   // 숲은 오염을 흡수
+    this.tech += 0.0020 * this.dev * f * (1 - this.tech) - 0.0002 * this.tech;
+    this.edu += 0.0020 * this.school * f * (1 - this.edu) - 0.0006 * this.edu;
+    this.built += 0.0030 * this.build * f * (1 - this.built) * (1 - 0.5 * this.forest);
+    if (this.forest > 0.05) this.built = Math.min(this.built, 1 - 0.6 * this.forest);   // 개발 가능한 부지 상한
+    if (this.tech < 0) this.tech = 0; if (this.edu < 0) this.edu = 0;
+    this.zoneR = this.built > 0.01 ? 2 + 16 * this.built : 0;
+    if (this.zoneR > 0) this.applyZone();
+    w *= 1 - 0.3 * this.ration * this.ration;   // 강한 배급은 영양·사기 저하로 이어짐
+    this.wS += (w - this.wS) * 0.1;
+    const cap = civ.cap * (1 - 0.3 * this.forest) * (1 + this.built) * (1 + 0.3 * this.tech);
+    if (this.wS >= 0.97) this.pop += this.pop * 0.0012 * (0.2 + 1.6 * this.birth) * (1 - 0.5 * this.adaptS) * (1 - 0.5 * this.edu) * Math.max(0, 1 - this.pop / cap);
+    else if (this.wS < 0.9) this.pop -= this.pop * 0.012 * (0.9 - this.wS) / 0.9;
+    this.HI = this.wS * Math.min(1, 0.4 + 0.6 * this.pop / this.P0) * (1 - 0.25 * this.ration) * (1 - 0.15 * this.adaptS);
+  }
+
+  applyZone() {
+    const r = this.zoneR, r2 = r * r, ri = Math.ceil(r);
+    for (let dy = -ri; dy <= ri; dy++) for (let dx = -ri; dx <= ri; dx++) {
+      if (dx * dx + dy * dy > r2) continue;
+      const x = SX + dx, y = SY + dy; if (x < 0 || x >= GW || y < 0 || y >= GH) continue;
+      const i = y * GW + x; this.plant[i] = 0; this.pa[i] = 0; this.pb[i] = 0; if (this.type[i]) { this.type[i] = 0; this.en[i] = 0; }
+    }
+  }
+
+  stats(init) {
+    const c = [0, 0, 0, 0, 0]; let sum = 0; const cv = [[0, 0], [0, 0], [0, 0], [0, 0], [0, 0]]; const hb = [[0, 0], [0, 0], [0, 0], [0, 0], [0, 0]]; this.hbc = hb;
+    for (let i = 0; i < N; i++) {
+      if (this.plant[i] > 0.15) c[0]++; sum += this.plant[i];
+      if (this.pa[i] > 0.1) cv[0][0]++; if (this.pb[i] > 0.1) cv[0][1]++;
+      const t = this.type[i]; if (t) { c[t]++; cv[t][this.vr[i]]++; if (this.hs[i]) hb[t][this.vr[i]]++; }
+    }
+    this.counts = c; this.cv = cv; this.meanPlant = sum / N;
+    for (let l = 0; l < 5; l++) {
+      const a = 0.01; const d = c[l] - this.ema[l]; if (init && this.ema[l] === 0) this.ema[l] = c[l];
+      this.ema[l] += a * d; this.emv[l] = (1 - a) * (this.emv[l] + a * d * d);
+    }
+    let cs = 0; for (let l = 0; l < 5; l++) cs += Math.min(1, c[l] / MINV[l]); this.compl = cs / 5;
+    let ps = 0; for (let l = 1; l <= 3; l++) ps += c[l] > c[l + 1] ? 1 : 0; ps += (c[0] > c[1] * 2) ? 1 : 0; this.pyr = ps / 4;
+    this.cover = Math.min(1, this.meanPlant / 0.4);
+    let cvar = 0; for (let l = 1; l <= 4; l++) cvar += Math.sqrt(this.emv[l]) / Math.max(1, this.ema[l]); cvar /= 4;
+    this.stab = Math.exp(-cvar * 1.8);
+    this.EI = Math.pow(this.compl, 2) * (0.4 * this.pyr + 0.3 * this.cover + 0.3 * this.stab);
+    this.CI = Math.sqrt(Math.max(0, this.EI) * Math.max(0, this.HI));
+  }
+
+  checkEnd() {
+    const c = this.counts; let ext = -1, extV = 0;
+    for (let l = 0; l < 5 && ext < 0; l++) for (let v = 0; v < 2; v++) { const gone = this.tick < 5 * TPY ? false : l === 0 ? this.cv[0][v] < 12 : this.cv[l][v] === 0; if (gone) { ext = l; extV = v; break; } }
+    this.peakPop = Math.max(this.peakPop, this.pop);
+    const humDrop = this.pop <= this.peakPop * 0.5;
+    if (ext >= 0 && humDrop) this.over = { type: 'both', title: '공멸', msg: josa(NAMES[ext][this.sp[ext][extV]], '이', '가') + ' 멸종했고, 인류도 급감했습니다.' };
+    else if (ext >= 0) this.over = { type: 'solo', title: '생태계 붕괴 · 나만 생존', msg: LEVEL_LABEL[ext] + ' ' + josa(NAMES[ext][this.sp[ext][extV]], '이', '가') + ' 멸종했습니다. 인류만 남은 것은 공존이 아닙니다.' };
+    else if (humDrop) this.over = { type: 'human', title: '인류 급감', msg: '인구가 최고치의 절반 아래로 떨어져 정착지가 유지되지 못했습니다.' };
+    else if (this.targetYears && this.year() >= this.targetYears) {
+      const b = Math.round(this.score * 0.15); this.bonus += b; this.score += b;
+      this.over = { type: 'win', title: '공존 성공', msg: this.targetYears + '년 동안 인류와 생태계가 함께 살아남았습니다. 완주 가산점 +' + b };
+    }
+    // 위기 경고 (종 단위)
+    this.endangered = [];
+    for (let l = 0; l < 5; l++) for (let v = 0; v < 2; v++) {
+      const n = this.cv[l][v], thr = l === 0 ? 70 : Math.max(1.5, MINV[l] * 0.2);
+      if (n < thr) {
+        this.endangered.push([l, v]);
+        const key = l * 2 + v;
+        if (!this.warned[key] || this.tick - this.warned[key] > 6 * TPY) { this.warned[key] = this.tick; this.say('주의: ' + NAMES[l][this.sp[l][v]] + '(' + LEVEL_LABEL[l] + ') 개체 수가 위험할 만큼 적습니다. 멸종하면 게임이 끝납니다.', 'warn'); }
+      }
+    }
+    if (this.pollution > 0.5 && this.tick - this.polluteWarn > 8 * TPY) { this.polluteWarn = this.tick; this.say('오염도가 높습니다. 산업 가동을 줄이거나 정화하세요.', 'warn'); }
+    if (this.pop < this.peakPop * 0.75 && this.tick - this.popWarn > 6 * TPY) { this.popWarn = this.tick; this.say('인구가 줄고 있습니다. 절반 아래로 떨어지면 게임이 끝납니다.', 'warn'); }
+  }
+
+  evolve() {
+    for (let l = 1; l <= 4; l++) for (let v = 0; v < 2; v++) {
+      const n = this.fn[l][v]; if (n < 20) { this.fs[l][v] = 0; this.fn[l][v] = 0; continue; }
+      const m = this.fs[l][v] / n; let h = this.hib[l][v];
+      if (m < 0.5) h = Math.min(0.6, h + 0.05 + 0.2 * (0.5 - m)); else h = Math.max(0.12, h - 0.015);
+      this.hib[l][v] = h; this.fs[l][v] = 0; this.fn[l][v] = 0;
+      const lvl = h >= 0.4 ? 2 : h >= 0.25 ? 1 : 0;
+      if (lvl > this.hibSaid[l][v]) { this.hibSaid[l][v] = lvl; this.say('진화: ' + josa(NAMES[l][this.sp[l][v]], '이', '가') + ' ' + (lvl === 1 ? '동면 능력을 얻기 시작했습니다.' : '동면에 크게 적응했습니다.'), 'good'); }
+    }
+  }
+
+  step() {
+    if (this.over) return;
+    this.tick++;
+    if (this.tick % TPY === 0) this.evolve();
+    this.stepEnv(); this.stepPlants(); this.stepAnimals(); this.rescue(); this.stepHuman(); this.stats(false);
+    const coexist = this.EI >= 0.55 && this.HI >= 0.6;
+    if (coexist) this.streak++; else this.streak = Math.max(0, this.streak - 3);
+    const base = 5 * this.mult.total * this.CI;
+    const ramp = Math.min(1, this.streak / (8 * TPY));
+    const bon = base * 0.6 * ramp * (1 + 0.5 * (this.adapt + this.symb) / 2);
+    this.score += base + bon; this.bonus += bon; this.ciSum += this.CI; if (this.streak > this.maxStreak) this.maxStreak = this.streak;
+    const ms = Math.floor(this.streak / (10 * TPY));
+    if (ms > this.msDone) { const b = Math.round(100 * this.mult.total * ms); this.msDone = ms; this.score += b; this.bonus += b; this.say('공존 마일스톤! ' + ms * 10 + '년 연속 공존 — 가산점 +' + b, 'good'); }
+    if (ms < this.msDone && this.streak < 10 * TPY) this.msDone = ms;
+    if (this.tick % 4 === 0) { this.hist.push(this.counts.slice()); if (this.hist.length > 600) this.hist.shift(); }
+    this.checkEnd();
+  }
+
+  /* 플레이어 개입 */
+  cost(base) { return Math.round(base * this.costScale); }
+  actions() {
+    const ci = this.civIdx;
+    return [
+      { id: 'tUp', name: '궤도 거울 +1.5℃', cost: this.cost(16), min: 0 },
+      { id: 'tDn', name: '태양 차폐 −1.5℃', cost: this.cost(16), min: 0 },
+      { id: 'hUp', name: '물 공급 +6%', cost: this.cost(16), min: 0 },
+      { id: 'hDn', name: '제습 −6%', cost: this.cost(16), min: 0 },
+      { id: 'plants', name: '식생 복원', cost: this.cost(10), min: 0 },
+      { id: 'purify', name: '오염 정화', cost: this.cost(26), min: 1 },
+      { id: 'reserve', name: '보호구역 지정', cost: this.cost(22), min: 1 },
+      { id: 'stab', name: '기후 안정화(10년)', cost: this.cost(48), min: 2 },
+      { id: 'rewild', name: '녹지 환원(건설지 철거)', cost: this.cost(30), min: 0 },
+      { id: 'bigT', name: '대규모 온도 조절(±4℃)', cost: this.cost(55), min: 3 },
+      { id: 'bigH', name: '대규모 습도 조절(±20%)', cost: this.cost(55), min: 3 },
+    ].map(a => Object.assign(a, { locked: ci < a.min }));
+  }
+  act(id, arg) {
+    const a = this.actions().find(x => x.id === id);
+    if (!a) return { ok: false, msg: '알 수 없는 행동' };
+    if (a.locked) return { ok: false, msg: '문명 수준이 부족합니다.' };
+    let cost = a.cost;
+    
+    if (this.res < cost) return { ok: false, msg: '자원이 부족합니다 (필요 ' + cost + ').' };
+    const lim = (v, c) => Math.max(this.T0 - 20, Math.min(this.T0 + 20, v));
+    switch (id) {
+      case 'tUp': this.Tt = lim(this.Tt + 1.5); break;
+      case 'tDn': this.Tt = lim(this.Tt - 1.5); break;
+      case 'hUp': this.Ht = Math.min(95, this.Ht + 6); break;
+      case 'hDn': this.Ht = Math.max(5, this.Ht - 6); break;
+      case 'plants': {
+        for (let k = 0; k < 220; k++) {
+          const i = (this.rng() * N) | 0; const tot = this.pa[i] + this.pb[i]; if (tot >= 0.6) continue;
+          const T = this.localT(i), H = this.localH(i), fA = fit(T, H, 0, this.sp[0][0]), fB = fit(T, H, 0, this.sp[0][1]), w = fA / (fA + fB + 1e-6);
+          this.pa[i] += (0.6 - tot) * w; this.pb[i] += (0.6 - tot) * (1 - w); this.plant[i] = this.pa[i] + this.pb[i];
+        } break; }
+      case 'rewild': this.built = Math.max(0, this.built - 0.15); break;
+      case 'purify': this.pollution = Math.max(0, this.pollution - 0.2); break;
+      case 'stab': this.stabLeft = 10 * TPY; break;
+      case 'bigT': this.Tt = lim(this.Tt + (arg < 0 ? -4 : 4)); break;
+      case 'bigH': this.Ht = Math.max(5, Math.min(95, this.Ht + (arg < 0 ? -20 : 20))); break;
+      case 'reserve': {
+        if (this.reserves >= this.civIdx * 2) return { ok: false, msg: '보호구역 한도 도달 (' + this.civIdx * 2 + '곳).' };
+        const cx = arg.x, cy = arg.y;
+        for (let dy = -4; dy <= 4; dy++) for (let dx = -4; dx <= 4; dx++) if (dx * dx + dy * dy <= 17) this.reserve[((cy + dy + GH) % GH) * GW + (cx + dx + GW) % GW] = 1;
+        this.reserves++; break;
+      }
+    }
+    this.res -= cost; this.say('개입: ' + a.name, 'act');
+    return { ok: true };
+  }
+  introduce(lv, v) {
+    const cost = this.cost(14);
+    if (this.res < cost) return { ok: false, msg: '자원이 부족합니다 (필요 ' + cost + ').' };
+    const n = this.seed(lv, lv === 1 ? 10 : lv === 2 ? 7 : 5, 70, v);
+    this.res -= cost;
+    this.say('도입: ' + NAMES[lv][this.sp[lv][v]] + ' ' + n + '개체', 'act');
+    return { ok: true };
+  }
+}
+
+if (typeof module !== 'undefined') module.exports = { DEFAULTS, Sim, PLANETS, CIVS, CLIMATES, NICHES, NAMES, LEVEL_LABEL, GW, GH, N, TPY, scoreMult, matchScore, fit, LV_COLOR };
+
+</script>
+<script>
+/* ===================== UI ===================== */
+/* ★ 부스 운영 전에 바꾸세요 */
+const STAFF_PIN = '1234';          // 스태프 확인 PIN
+const SECRET = 'coexist-2026-booth'; // 확인 코드 서명용 비밀 문자열
+const MISSION_BONUS = 1.3;         // 미션 성공 시 시작 자원 배율
+let playerName = '', missionOK = false;
+function cyrb53(str, seed = 0){
+  let h1 = 0xdeadbeef ^ seed, h2 = 0x41c6ce57 ^ seed;
+  for (let i = 0, ch; i < str.length; i++){ ch = str.charCodeAt(i); h1 = Math.imul(h1 ^ ch, 2654435761); h2 = Math.imul(h2 ^ ch, 1597334677); }
+  h1 = Math.imul(h1 ^ (h1>>>16), 2246822507); h1 ^= Math.imul(h2 ^ (h2>>>13), 3266489909);
+  h2 = Math.imul(h2 ^ (h2>>>16), 2246822507); h2 ^= Math.imul(h1 ^ (h1>>>13), 3266489909);
+  return (4294967296 * (2097151 & h2) + (h1>>>0)).toString(36).toUpperCase().padStart(10,'0').slice(0,10);
+}
+function makeCode(name, score, years, seed){ return cyrb53([name, score, years, seed, SECRET].join('|')); }
+const $ = id => document.getElementById(id);
+const fmt = n => Math.round(n).toLocaleString('ko-KR');
+const cfg = { pi: 1, T: 16, H: 76, climate: 1, g: 0.9, rad: 1.0, tilt: 1, custom: false, species: [[1,2],[1,2],[1,2],[1,2],[1,2]], civ: 0 };
+let sim = null, paused = false, speed = 1, acc = 0, lastTs = 0, view = 'eco', pickMode = false, lastUI = 0, logLen = -1, ended = false;
+
+function curPlanet(){ return Object.assign({}, PLANETS[cfg.pi], { T: cfg.T, H: cfg.H, climate: cfg.climate, g: cfg.g, rad: cfg.rad, tilt: cfg.tilt }); }
+function speciesFit(lv, ni){
+  let s = 0; for (let k = 0; k <= 10; k++) s += fit(cfg.T + 4 - 14 * k / 10, cfg.H, lv, ni);
+  return s / 11;
+}
+function fitColor(f){ return f > .65 ? '#1f9d77' : f > .35 ? '#c98a12' : '#d63a2e'; }
+
+/* ---------- 설정 화면 ---------- */
+function buildSetup(){
+  $('planets').innerHTML = PLANETS.map((p,i)=>`
+    <button class="card planet" data-i="${i}">
+      <div class="orb" style="background:radial-gradient(circle at 32% 30%,${p.color},#1b1410 92%)"></div>
+      <h3>${p.name}</h3><div class="t">${p.tag}</div><p>${p.desc}</p>
+      <div class="chips"><span class="chip">${p.T}℃</span><span class="chip">습도 ${p.H}%</span><span class="chip">${CLIMATES[p.climate].name}</span><span class="chip">중력 ${p.g}g</span><span class="chip">방사선 ${p.rad<1?'낮음':p.rad<2?'보통':'높음'}</span></div>
+    </button>`).join('');
+  $('planets').querySelectorAll('.card').forEach(b=>b.onclick=()=>selectPlanet(+b.dataset.i));
+  $('climSeg').innerHTML = CLIMATES.map(c=>`<button data-c="${c.id}">${c.name}<small>${c.desc}</small></button>`).join('');
+  $('climSeg').querySelectorAll('button').forEach(b=>b.onclick=()=>{cfg.climate=+b.dataset.c;cfg.custom=true;refreshSetup();});
+  $('civSeg').innerHTML = CIVS.map((c,i)=>`<button data-c="${i}">${i+1}단계 · ${c.name}<small>${c.desc} (×${c.mult})</small></button>`).join('');
+  $('civSeg').querySelectorAll('button').forEach(b=>b.onclick=()=>{cfg.civ=+b.dataset.c;refreshSetup();});
+  $('rG').oninput=e=>{cfg.g=+e.target.value;cfg.custom=true;refreshSetup(true);};
+  $('rR').oninput=e=>{cfg.rad=+e.target.value;cfg.custom=true;refreshSetup(true);};
+  $('rTi').oninput=e=>{cfg.tilt=+e.target.value/100;cfg.custom=true;refreshSetup(true);};
+  $('rT').oninput = e=>{cfg.T=+e.target.value;cfg.custom=true;refreshSetup(true);};
+  $('rH').oninput = e=>{cfg.H=+e.target.value;cfg.custom=true;refreshSetup(true);};
+  selectPlanet(1);
+}
+function selectPlanet(i){
+  const first=!cfg.picked; cfg.pi=i; if(!cfg.custom) applyPlanetDefaults(); if(first){ cfg.picked=true; autoSpecies(true); } refreshSetup();
+}
+function applyPlanetDefaults(){ const p=PLANETS[cfg.pi]; cfg.T=p.T; cfg.H=p.H; cfg.climate=p.climate; cfg.g=p.g; cfg.rad=p.rad; cfg.tilt=1; cfg.custom=false;
+}
+function resetEnv(){ applyPlanetDefaults(); refreshSetup(); 
+}
+function speciesReady(){ return cfg.species.every(a=>a.length===2);
+}
+function autoSpecies(silent){
+  for (let lv=0; lv<5; lv++){ let b=0,bs=-1; for(let n=0;n<4;n++){const f=speciesFit(lv,n); if(f>bs){bs=f;b=n;}} const o=[0,1,2,3].filter(n=>n!==b).sort((x,y)=>speciesFit(lv,y)-speciesFit(lv,x)); cfg.species[lv]=[b,o[0]]; }
+  if(!silent) refreshSetup();
+}
+function refreshSetup(keepSpecies){
+  document.querySelectorAll('#planets .card').forEach((b,i)=>b.classList.toggle('sel',i===cfg.pi));
+  $('rG').value=cfg.g; $('rR').value=cfg.rad; $('rTi').value=Math.round(cfg.tilt*100); $('vG0').textContent=cfg.g.toFixed(1)+'g'; $('vR0').textContent=cfg.rad<1?'낮음 ('+cfg.rad.toFixed(1)+')':cfg.rad<2?'보통 ('+cfg.rad.toFixed(1)+')':'높음 ('+cfg.rad.toFixed(1)+')'; $('vTi0').textContent=Math.round(cfg.tilt*100)+'%'; $('rT').value=cfg.T; $('rH').value=cfg.H; $('vT').textContent=cfg.T+'℃'; $('vH').textContent=cfg.H+'%';
+  document.querySelectorAll('#climSeg button').forEach(b=>b.classList.toggle('sel',+b.dataset.c===cfg.climate));
+  document.querySelectorAll('#civSeg button').forEach(b=>b.classList.toggle('sel',+b.dataset.c===cfg.civ));
+  // 종 선택
+  $('species').innerHTML = LEVEL_LABEL.map((lab,lv)=>`
+    <div class="sp-row"><h3><span class="dot" style="background:${LV_COLOR[lv]}"></span>${lab} <small style="color:var(--muted);font-weight:400">${cfg.species[lv].length}/2 선택 · 다시 누르면 취소${cfg.species[lv].some(n=>speciesFit(lv,n)<0.35)?' · <span style="color:#d63a2e">환경에 안 맞는 종 포함 (고위험·고배율)</span>':''}</small></h3>
+    <div class="sp-opts">${[0,1,2,3].map(n=>{const f=speciesFit(lv,n);return `
+      <button class="sp ${cfg.species[lv].includes(n)?'sel':''}" data-lv="${lv}" data-n="${n}">
+        <b>${NAMES[lv][n]}</b><small>${NICHES[n].label} · 적합도 ${Math.round(f*100)}%</small>
+        <div class="fitbar"><i style="width:${Math.round(f*100)}%;background:${fitColor(f)}"></i></div></button>`}).join('')}</div></div>`).join('');
+  $('species').querySelectorAll('.sp').forEach(b=>b.onclick=()=>{const lv=+b.dataset.lv,n=+b.dataset.n,s=cfg.species[lv]; const k=s.indexOf(n); if(k>=0) s.splice(k,1); else { if(s.length>=2) return; s.push(n); } refreshSetup();});
+  // 요약
+  { const ok=speciesReady(); $('bGo').disabled=!ok; $('bGo').style.opacity=ok?1:.45; $('spWarn').textContent=ok?'':'각 층마다 종을 2개씩 골라야 시작할 수 있습니다.'; }
+  const m = scoreMult({planet:curPlanet(),species:cfg.species.map(a=>a.length===2?a:[a[0]!==undefined?a[0]:0,a[0]!==undefined?a[0]:0]),civ:cfg.civ});
+  $('mCiv').textContent='×'+m.civ.toFixed(2); $('mClim').textContent='×'+m.clim.toFixed(2);
+  $('mMatch').textContent='평균 '+Math.round(m.match*100)+'%'; $('mEnv').textContent='×'+m.env.toFixed(2); $('mTot').textContent='×'+m.total.toFixed(2);
+  $('maxLabel').textContent='1년당 최대 점수 (가산 포함)'; $('maxScore').textContent=fmt(160*m.total); $('maxNote').textContent='끝이 없는 게임입니다. 생물이 멸종하거나 인류가 급감할 때까지 얼마나 오래, 얼마나 잘 공존하느냐로 순위가 갈립니다.';
+}
+
+/* ---------- 게임 시작 ---------- */
+function openMission(){ $('mPin').value=''; $('mErr').textContent=''; $('mName').value=playerName; $('modalEnd').classList.add('hidden'); $('modalMission').classList.remove('hidden'); setTimeout(()=>$('mName').focus(),50); }
+function closeMission(){ $('modalMission').classList.add('hidden'); }
+function confirmMission(){
+  const n=$('mName').value.trim(); if(!n){ $('mErr').textContent='이름을 입력해 주세요.'; return; }
+  if($('mPin').value!==STAFF_PIN){ $('mErr').textContent='PIN이 맞지 않습니다. 스태프에게 확인받으세요.'; return; }
+  playerName=n; missionOK=true; closeMission(); startGame();
+}
+function startGame(){
+  if(!missionOK) return;
+  missionOK=false; // 한 번의 승인으로 한 판만
+  const seed=(Math.random()*4294967295)>>>0; cfg.seed=seed;
+  sim = new Sim({ planet: curPlanet(), species: cfg.species.map(a=>a.slice()), civ: cfg.civ, seed });
+  sim.res *= MISSION_BONUS;
+  $('sAd').value=0; $('sSy').value=0; $('sBi').value=Math.round(sim.bias*100); $('sPu').value=0; $('sFo').value=0; $('sRa').value=0; $('sBr').value=Math.round(sim.birth*100); $('sG').value=Math.round(sim.gather*100); $('sHu').value=Math.round(sim.hunt*100); $('sI').value=Math.round(sim.industry*100); $('sD').value=Math.round(sim.dev*100); $('sE').value=Math.round(sim.school*100); $('sB').value=Math.round(sim.build*100);
+  paused=false; speed=1; acc=0; view='eco'; pickMode=false; ended=false; logLen=-1;
+  $('setup').classList.add('hidden'); $('game').classList.remove('hidden'); $('modalEnd').classList.add('hidden');
+  $('gPlanet').textContent = PLANETS[cfg.pi].name;
+  $('civName').textContent = CIVS[cfg.civ].name;
+  $('legend').innerHTML = LEVEL_LABEL.map((l,lv)=>`<span><i class="dot" style="background:${LV_COLOR[lv]}"></i>${NAMES[lv][sim.sp[lv][0]]} / <i class="dot" style="background:${LV_COLOR[lv]};opacity:.45"></i>${NAMES[lv][sim.sp[lv][1]]}</span>`).join('');
+  buildActs(); buildPyr(); setPauseLabel(); document.querySelectorAll('[data-sp]').forEach(b=>b.classList.toggle('sel',b.dataset.sp==='1'));
+  document.querySelectorAll('#views button').forEach(b=>b.classList.toggle('sel',b.dataset.v==='eco'));
+  window.scrollTo(0,0); lastTs=0; requestAnimationFrame(frame);
+}
+function backToSetup(){ sim=null; $('game').classList.add('hidden'); $('setup').classList.remove('hidden'); $('modalEnd').classList.add('hidden'); }
+
+document.querySelectorAll('[data-sp]').forEach(b=>b.onclick=()=>{speed=+b.dataset.sp;document.querySelectorAll('[data-sp]').forEach(x=>x.classList.toggle('sel',x===b));});
+document.querySelectorAll('#views button').forEach(b=>b.onclick=()=>{view=b.dataset.v;document.querySelectorAll('#views button').forEach(x=>x.classList.toggle('sel',x===b));});
+function togglePause(){paused=!paused;setPauseLabel();}
+function setPauseLabel(){ $('bPause').textContent = paused ? '▶ 재개' : '일시정지'; }
+document.addEventListener('keydown',e=>{ if(e.code==='Space' && sim && !$('game').classList.contains('hidden') && e.target.tagName!=='INPUT'){e.preventDefault();togglePause();} });
+function openHelp(){ $('modalHelp').classList.remove('hidden'); if(sim) paused=true,setPauseLabel(); }
+function closeHelp(){ $('modalHelp').classList.add('hidden'); }
+$('sAd').oninput=e=>{sim.adaptS=e.target.value/100;};
+$('sSy').oninput=e=>{sim.symbS=e.target.value/100;};
+$('sBi').oninput=e=>{sim.bias=e.target.value/100;};
+$('sPu').oninput=e=>{sim.purify=e.target.value/100;};
+$('sFo').oninput=e=>{sim.forest=e.target.value/100;};
+$('sRa').oninput=e=>{sim.ration=e.target.value/100;};
+$('sBr').oninput=e=>{sim.birth=e.target.value/100;};
+$('sG').oninput=e=>{sim.gather=e.target.value/100;};
+$('sHu').oninput=e=>{sim.hunt=e.target.value/100;};
+$('sI').oninput=e=>{sim.industry=e.target.value/100;};
+$('sD').oninput=e=>{sim.dev=e.target.value/100;};
+$('sE').oninput=e=>{sim.school=e.target.value/100;};
+$('sB').oninput=e=>{sim.build=e.target.value/100;};
+
+/* ---------- 패널 구성 ---------- */
+function buildPyr(){
+  $('pyr').innerHTML = [0,1,2,3,4].map(lv=>[0,1].map(v=>`
+    <div class="row" id="pr${lv}_${v}"><i class="dot" style="background:${LV_COLOR[lv]};opacity:${v?0.45:1}"></i>
+    <div><div class="nm">${NAMES[lv][sim.sp[lv][v]]}<small>${LEVEL_LABEL[lv]}</small></div><div class="bar" style="height:5px;margin-top:3px"><i id="pb${lv}_${v}" style="background:${LV_COLOR[lv]}"></i></div></div>
+    <div class="cnt" id="pc${lv}_${v}"></div>
+    ${lv>0?`<button class="mini" id="pi${lv}_${v}" onclick="introduceSp(${lv},${v})">도입</button>`:'<span></span>'}</div>`).join('')).join('');
+}
+function introduceSp(lv,v){ const r=sim.introduce(lv,v); if(!r.ok) toast(r.msg); }
+let toastT=0; function toast(msg){ sim.say(msg,'warn'); }
+const ACT_HELP = {
+  tUp:'행성 전체 온도 목표 상승', tDn:'행성 전체 온도 목표 하강', hUp:'습도 목표 상승', hDn:'습도 목표 하강',
+  plants:'무작위 지역에 식생 복원', purify:'오염도 −0.2', reserve:'지도를 클릭해 채집·수렵·오염으로부터 보호',
+  stab:'계절 진폭·이상기후 감소', rewild:'건설지 15% 철거, 서식지 복원', bigT:'온도 ±4℃', bigH:'습도 ±20%'
+};
+function buildActs(){
+  const list = sim.actions(); let h='';
+  list.forEach(a=>{
+    if(a.id==='bigT'||a.id==='bigH'){
+      const nm=a.id==='bigT'?'온도':'습도';
+      h+=`<button class="act" data-a="${a.id}" data-arg="1"><b>대규모 ${nm} 상승</b><small></small></button>`;
+      h+=`<button class="act" data-a="${a.id}" data-arg="-1"><b>대규모 ${nm} 하강</b><small></small></button>`;
+    } else h+=`<button class="act" data-a="${a.id}"><b>${a.name}</b><small></small></button>`;
+  });
+  $('acts').innerHTML=h;
+  $('acts').querySelectorAll('.act').forEach(b=>b.onclick=()=>{
+    const id=b.dataset.a;
+    if(id==='reserve'){ pickMode=!pickMode; $('map').classList.toggle('pick',pickMode); return; }
+    const r=sim.act(id, b.dataset.arg?+b.dataset.arg:undefined); if(!r.ok) toast(r.msg);
+  });
+}
+$('map').addEventListener('click',e=>{
+  if(!pickMode||!sim) return;
+  const r=$('map').getBoundingClientRect();
+  const x=Math.floor((e.clientX-r.left)/r.width*GW), y=Math.floor((e.clientY-r.top)/r.height*GH);
+  const res=sim.act('reserve',{x,y}); if(!res.ok) toast(res.msg); pickMode=false; $('map').classList.remove('pick');
+});
+
+/* ---------- 렌더링 ---------- */
+const off=document.createElement('canvas'); off.width=GW; off.height=GH; const octx=off.getContext('2d'); const img=octx.createImageData(GW,GH);
+const mctx=$('map').getContext('2d'), cctx=$('chart').getContext('2d');
+function lerp(a,b,t){return a+(b-a)*t;}
+function drawMap(){
+  const d=img.data, CS=800/GW;
+  for(let i=0;i<N;i++){
+    let r,g,b; const p=sim.plant[i], f=sim.fitMap[i];
+    if(view==='temp'){ const t=Math.max(0,Math.min(1,(sim.localT(i)+20)/65)); r=lerp(50,240,t); g=lerp(120,80,t); b=lerp(230,60,t); }
+    else if(view==='hum'){ const h=sim.localH(i)/100; r=lerp(190,30,h); g=lerp(160,110,h); b=lerp(100,215,h); }
+    else { r=lerp(226,205,f); g=lerp(214,222,f); b=lerp(190,196,f); }
+    const k=view==='eco'?p:p*0.35, pb=p>0?sim.pb[i]/p:0;
+    r=lerp(r,lerp(40,150,pb),k); g=lerp(g,lerp(150,160,pb),k); b=lerp(b,lerp(80,40,pb),k);
+    if(sim.reserve[i]){ r=r*0.85+30; g=g*0.85+10; b=b*0.85+40; }
+    const o=i*4; d[o]=r; d[o+1]=g; d[o+2]=b; d[o+3]=255;
+  }
+  octx.putImageData(img,0,0);
+  mctx.imageSmoothingEnabled=false; mctx.drawImage(off,0,0,800,480);
+  const rad=[0,2.4,3.1,3.9,4.7];
+  for(let i=0;i<N;i++){ const t=sim.type[i]; if(!t) continue; const x=(i%GW)*CS+CS/2, y=((i/GW)|0)*CS+CS/2;
+    mctx.fillStyle=LV_COLOR[t]; mctx.beginPath(); mctx.arc(x,y,rad[t],0,6.283); mctx.fill();
+    if(sim.hs[i]){ mctx.fillStyle='rgba(10,30,80,.5)'; mctx.fill(); mctx.strokeStyle='#2a5fd6'; mctx.lineWidth=1; mctx.stroke(); }
+    if(sim.vr[i]){ mctx.strokeStyle='#fff'; mctx.lineWidth=1.2; mctx.stroke(); mctx.fillStyle='rgba(0,0,0,.45)'; mctx.beginPath(); mctx.arc(x,y,rad[t]*0.45,0,6.283); mctx.fill(); } }
+  // 정착지 · 건설 구역
+  const sx=(SX+.5)*CS, sy=(SY+.5)*CS;
+  if(sim.zoneR>0){ mctx.fillStyle='rgba(110,120,135,.45)'; mctx.strokeStyle='#6d7f90'; mctx.lineWidth=1.5; mctx.setLineDash([5,4]);
+    mctx.beginPath(); mctx.arc(sx,sy,sim.zoneR*CS,0,6.283); mctx.fill(); mctx.stroke(); mctx.setLineDash([]); }
+  const sz=10+sim.civIdx*2;
+  mctx.fillStyle='rgba(90,169,255,.35)'; mctx.strokeStyle='#2a74c9'; mctx.lineWidth=2;
+  mctx.beginPath(); mctx.arc(sx,sy,sz,0,6.283); mctx.fill(); mctx.stroke();
+  mctx.fillStyle='#17426e'; mctx.beginPath(); mctx.moveTo(sx-6,sy+4); mctx.lineTo(sx,sy-6); mctx.lineTo(sx+6,sy+4); mctx.closePath(); mctx.fill();
+  mctx.font='11px sans-serif'; mctx.fillStyle='#17426e'; mctx.textAlign='center'; mctx.fillText('정착지',sx,sy+sz+12);
+}
+function drawChart(){
+  const c=$('chart'), W=c.width, H=c.height, padL=34, padB=18, padT=6, padR=6;
+  cctx.clearRect(0,0,W,H);
+  cctx.strokeStyle='#d6d0c2'; cctx.fillStyle='#5f6b76'; cctx.font='11px sans-serif'; cctx.textAlign='right'; cctx.lineWidth=1;
+  const maxL=Math.log10(1+4000);
+  [1,10,100,1000].forEach(v=>{ const y=H-padB-(Math.log10(1+v)/maxL)*(H-padB-padT); cctx.beginPath(); cctx.moveTo(padL,y); cctx.lineTo(W-padR,y); cctx.stroke(); cctx.fillText(v,padL-4,y+3); });
+  const h=sim.hist; if(h.length<2) return;
+  for(let lv=0;lv<5;lv++){
+    cctx.strokeStyle=LV_COLOR[lv]; cctx.lineWidth=lv===0?1.2:1.8; cctx.beginPath();
+    for(let k=0;k<h.length;k++){ const x=padL+k/(h.length-1)*(W-padL-padR); const y=H-padB-(Math.log10(1+h[k][lv])/maxL)*(H-padB-padT); k?cctx.lineTo(x,y):cctx.moveTo(x,y); }
+    cctx.stroke();
+  }
+  cctx.textAlign='left'; const y1=sim.year(), y0=Math.max(0,y1-h.length*4/TPY);
+  cctx.fillText(Math.round(y0)+'년',padL,H-4); cctx.textAlign='right'; cctx.fillText(Math.round(y1)+'년',W-padR,H-4);
+}
+function setBar(id,v,col){ const e=$(id); e.style.width=Math.max(0,Math.min(100,v*100))+'%'; if(col) e.style.background=col; }
+function updateUI(){
+  $('gYear').textContent=Math.floor(sim.year()); $('gScore').textContent=fmt(sim.score); $('gBonus').textContent='+'+fmt(sim.bonus); $('gStreak').textContent=(sim.streak/TPY).toFixed(1);
+  $('ciV').textContent=Math.round(sim.CI*100); setBar('ciB',sim.CI);
+  $('eiV').textContent=Math.round(sim.EI*100)+'%'; setBar('eiB',sim.EI); $('hiV').textContent=Math.round(sim.HI*100)+'%'; setBar('hiB',sim.HI);
+  $('polV').textContent=Math.round(sim.pollution*100)+'%'; setBar('polB',sim.pollution);
+  const mx=Math.max(...sim.counts.map(c=>Math.log10(1+c)));
+  for(let lv=0;lv<5;lv++){
+    for(let v=0;v<2;v++){ const c=sim.cv[lv][v], gone=lv===0?c<12:c<=0; const hb=lv>0?sim.hbc[lv][v]:0; $('pc'+lv+'_'+v).textContent=gone?'멸종':fmt(c)+(hb>0?' (💤'+fmt(hb)+')':''); $('pr'+lv+'_'+v).classList.toggle('ext',gone);
+      setBar('pb'+lv+'_'+v, Math.log10(1+c)/Math.log10(lv===0?3000:2000));
+      if(lv>0) $('pi'+lv+'_'+v).disabled = sim.res < sim.cost(14); }
+  }
+  $('hPop').textContent=fmt(sim.pop); $('hRes').textContent=fmt(sim.res); $('hSup').textContent=sim.supplyNow.toFixed(1); $('hDem').textContent=sim.demandNow.toFixed(1); $('hGrow').textContent='(소비 압력 ×'+sim.growth.toFixed(2)+')';
+  $('vG').textContent=Math.round(sim.gather*100)+'%'; $('vHu').textContent=Math.round(sim.hunt*100)+'%'; $('vI').textContent=Math.round(sim.industry*100)+'%';
+  $('vAd').textContent=Math.round(sim.adaptS*100)+'%'; $('vSy').textContent=Math.round(sim.symbS*100)+'%';
+  $('hAd').textContent='적응도 '+Math.round(sim.adapt*100)+'% · 외계 생물을 더 잘 소화하고 식량 수요가 줄어듦'; $('hSy').textContent='동화도 '+Math.round(sim.symb*100)+'% · 정착지 주변 동물이 보호받고, 죽이지 않고도 자원을 줌 (+'+sim.symSup.toFixed(1)+'/틱)';
+  $('vBi').textContent=Math.round(sim.bias*100)+'%'; $('vPu').textContent=Math.round(sim.purify*100)+'%'; $('vFo').textContent=Math.round(sim.forest*100)+'%'; $('vRa').textContent=Math.round(sim.ration*100)+'%'; $('vBr').textContent=Math.round(sim.birth*100)+'%';
+  $('vD').textContent=Math.round(sim.dev*100)+'%'; $('vE').textContent=Math.round(sim.school*100)+'%'; $('vB').textContent=Math.round(sim.build*100)+'%';
+  $('hD').textContent='기술 '+Math.round(sim.tech*100)+'% — 같은 채집·수렵에서 더 많이 얻고 오염이 줄어듭니다';
+  $('hE').textContent='교육 수준 '+Math.round(sim.edu*100)+'% — 1인당 소비와 인구 증가가 줄어듭니다';
+  $('hB').textContent='건설지 '+Math.round(sim.built*100)+'% — 온실 공급·인구 한도 증가, 대신 서식지가 사라집니다';
+  $('resNow').textContent='자원 '+fmt(sim.res); $('envnow').textContent='평균 '+sim.Tg.toFixed(1)+'℃ · 습도 '+sim.Hg.toFixed(0)+'%';
+  const acts=sim.actions(); const btns=$('acts').querySelectorAll('.act');
+  btns.forEach(b=>{
+    const a=acts.find(x=>x.id===b.dataset.a); const sm=b.querySelector('small');
+    const need=a.min; b.disabled = a.locked || (b.dataset.a!=='reserve' && sim.res<a.cost) || (b.dataset.a==='reserve' && sim.res<a.cost);
+    sm.textContent = a.locked ? CIVS[need].name+' 해금' : (a.cost+' 자원 · '+ACT_HELP[a.id]);
+    b.classList.toggle('on', b.dataset.a==='reserve' && pickMode);
+  });
+  // 배너
+  let bn='';
+  if(sim.ev) bn+=`<div class="bn w">⚠ 이상기후: ${sim.ev.name}</div>`;
+  if(sim.endangered.length){ bn+=`<div class="bn">멸종 위기: ${sim.endangered.map(([l,v])=>NAMES[l][sim.sp[l][v]]).join(', ')} — 멸종하면 게임 종료</div>`; }
+  if(sim.wS<0.6) bn+=`<div class="bn w">자원 부족 — 인구가 줄고 있습니다 (최고치의 절반 아래면 종료)</div>`;
+  if(pickMode) bn+=`<div class="bn w" style="color:#17426e;border-color:#9ec1ea;background:rgba(255,255,255,.95)">지도를 클릭해 보호구역 위치를 정하세요</div>`;
+  $('banner').innerHTML=bn;
+  // 로그
+  if(logLen!==sim.log.length || sim.log.length===60){ logLen=sim.log.length;
+    $('log').innerHTML=sim.log.slice(-12).reverse().map(l=>`<div class="${l.kind}"><span>${l.y.toFixed(1)}년</span>${l.msg}</div>`).join('')||'<div>조용합니다…</div>'; }
+}
+
+function frame(ts){
+  if(!sim) return;
+  if(!lastTs) lastTs=ts; const dt=Math.min(100,ts-lastTs); lastTs=ts;
+  if(!paused && !sim.over){
+    acc+=dt/1000*8*speed; let n=Math.floor(acc); acc-=n; n=Math.min(n,48);
+    for(let i=0;i<n&&!sim.over;i++) sim.step();
+  }
+  drawMap(); drawChart();
+  if(ts-lastUI>150){ lastUI=ts; updateUI(); }
+  if(sim.over && !ended){ ended=true; updateUI(); showEnd(); }
+  if(!ended) requestAnimationFrame(frame);
+}
+
+/* ---------- 결과 ---------- */
+function gradeOf(pct){ return pct>=0.85?['S','공존의 설계자']:pct>=0.65?['A','생태계 관리자']:pct>=0.4?['B','개척자']:['C','견습 테라포머']; }
+function showEnd(){
+  const o=sim.over, win=false;
+  const yrs=sim.year();
+  const avgCI=sim.ciSum/Math.max(1,sim.tick);
+  const g = gradeOf(avgCI*Math.min(1,yrs/45));
+  let best=''; try{ const key='coexist-best-'+PLANETS[cfg.pi].id; const prev=+localStorage.getItem(key)||0; if(sim.score>prev){localStorage.setItem(key,Math.round(sim.score));best='<p style="color:var(--accent)">이 행성 최고 기록 갱신!</p>';} else if(prev) best='<p style="color:var(--muted);font-size:13px">이 행성 최고 기록: '+fmt(prev)+'</p>'; }catch(e){}
+  const hint = {
+    solo:'생태계가 감당할 수 있는 속도보다 빠르게 소비하거나 오염시키면 생물이 사라집니다. 수렵·산업을 줄이고, 위험 경고가 뜨면 종을 도입해 보세요.',
+    human:'인구가 자원을 확보하지 못했습니다. 채집·산업으로 최소한의 공급을 유지하면서 생태계 부담을 나누세요.',
+    both:'생태계와 인류가 함께 무너졌습니다. 처음 슬라이더 값은 일부러 높게 설정되어 있으니 초반에 조절해 보세요.',
+  }[o.type];
+  $('endBox').className='mbox '+(win?'res-win':'res-lose');
+  $('endBox').innerHTML=`
+    <h2>${o.title}<span class="grade">${g[0]} · ${g[1]}</span></h2>
+    <p>${o.msg}</p>
+    <div class="big">${fmt(sim.score)}<span style="font-size:15px;color:var(--muted);font-weight:500"> 점</span></div>
+    <p style="font-size:13px;color:var(--muted);margin:0">평균 공존 지수 ${Math.round(avgCI*100)} · ${yrs.toFixed(1)}년 생존</p>
+    <div class="kv">
+      <div><span>생존 기간</span><b>${yrs.toFixed(1)}년</b></div><div><span>점수 배율</span><b>×${sim.mult.total.toFixed(2)}</b></div>
+      <div><span>최종 생태계 건강</span><b>${Math.round(sim.EI*100)}%</b></div><div><span>최종 인류 안정</span><b>${Math.round(sim.HI*100)}%</b></div>
+      <div><span>공존 가산점</span><b>+${fmt(sim.bonus)}</b></div><div><span>최장 연속 공존</span><b>${(sim.maxStreak/TPY).toFixed(1)}년</b></div>
+      <div><span>기술 / 교육</span><b>${Math.round(sim.tech*100)}% / ${Math.round(sim.edu*100)}%</b></div><div><span>건설지</span><b>${Math.round(sim.built*100)}%</b></div>
+      <div><span>인구</span><b>${fmt(sim.pop)}</b></div><div><span>오염도</span><b>${Math.round(sim.pollution*100)}%</b></div>
+    </div>
+    <p>${hint}</p>${best}
+    <p style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px"><button class="btn ghost sm" onclick="backToSetup()">처음으로 (다음 사람)</button><button class="btn sm" onclick="openMission()">같은 설정으로 다시</button></p>`;
+  const yTxt=yrs.toFixed(1), sInt=Math.round(sim.score), code=makeCode(playerName,sInt,yTxt,cfg.seed);
+  const row=[playerName,PLANETS[cfg.pi].name,CIVS[cfg.civ].name,o.title,yTxt,sInt,cfg.seed,code].join('\t');
+  const box=document.createElement('div');
+  box.innerHTML=`<div style="background:#f7f5ef;border:1px solid var(--line);border-radius:10px;padding:10px;margin-top:6px">
+    <div style="font-size:12.5px;color:var(--muted);margin-bottom:6px">스태프용 기록 (이름 ${playerName} · 확인 코드 <b style="color:var(--text)">${code}</b>)</div>
+    <textarea id="rowTxt" readonly rows="2" style="width:100%;background:transparent;border:0;color:#44515c;font:12px monospace;resize:none">${row}</textarea>
+    <button class="btn ghost sm" onclick="copyRow()">기록 복사</button></div>`;
+  $('endBox').insertBefore(box,$('endBox').lastElementChild);
+  $('modalEnd').classList.remove('hidden');
+}
+function copyRow(){ const ta=$('rowTxt'); ta.select(); try{ navigator.clipboard.writeText(ta.value); }catch(e){ document.execCommand('copy'); } }
+function verifyRow(){
+  const f=$('stRow').value.trim().split('\t'); const el=$('stRes');
+  if(f.length<8){ el.style.color='var(--warn)'; el.textContent='항목이 8개가 아닙니다. 탭으로 구분된 한 줄을 붙여 넣으세요.'; return; }
+  const ok = makeCode(f[0],f[5],f[4],f[6])===f[7].trim();
+  el.style.color=ok?'var(--good)':'var(--bad)'; el.textContent=ok?'✔ 일치 — 변조되지 않은 기록입니다':'✘ 불일치 — 점수나 이름이 수정되었을 수 있습니다';
+}
+function checkStaffHash(){ if(location.hash==='#staff') $('modalStaff').classList.remove('hidden'); }
+window.addEventListener('hashchange',checkStaffHash);
+
+buildSetup(); checkStaffHash();
+</script>
+</body>
+</html>
