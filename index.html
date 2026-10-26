@@ -268,7 +268,7 @@ button:disabled{opacity:.4;cursor:not-allowed}
         <div class="sl"><label>인류 적응(생체 개조) <b id="vAd"></b></label><input type="range" id="sAd" min="0" max="100" value="0"><div class="pc"><span style="color:var(--good)">＋ 채집 효율↑ · 식량 수요↓ (오래 걸림)</span><br><span style="color:var(--bad)">－ 개조 부담: 인구 증가↓·안정↓ · 비용 급증</span></div><div class="hint" id="hAd"></div></div>
         <div class="sl"><label>공생·동화(길들이기) <b id="vSy"></b></label><input type="range" id="sSy" min="0" max="100" value="0"><div class="pc"><span style="color:var(--good)">＋ 동물 보호 · 죽이지 않고 자원 획득</span><br><span style="color:var(--bad)">－ 정착지 주변 식생 과식 · 유지 자원</span></div><div class="hint" id="hSy"></div></div>
         <div class="grp">투자 · 자원을 써서 미래를 만든다</div>
-        <div class="sl"><label>개발(기술) <b id="vD"></b></label><input type="range" id="sD" min="0" max="100" value="10"><div class="pc"><span style="color:var(--good)">＋ 기술↑: 효율↑ · 오염↓ (장기)</span><br><span style="color:var(--bad)">－ 개발 부산물로 오염↑ · 자원 소모</span></div><div class="hint" id="hD"></div></div>
+        <div class="sl"><label>개발(기술) <b id="vD"></b></label><input type="range" id="sD" min="0" max="100" value="10"><div class="pc"><span style="color:var(--good)">＋ 기술 자기가속(쌓일수록 빨라짐) · 효율↑ · 후기엔 청정화</span><br><span style="color:var(--bad)">－ 초·중기 오염 급증(산업혁명형) · 기술↑만큼 소비↑ · 자원 소모</span></div><div class="hint" id="hD"></div></div>
         <div class="sl"><label>교육 <b id="vE"></b></label><input type="range" id="sE" min="0" max="100" value="10"><div class="pc"><span style="color:var(--good)">＋ 교육↑: 수요·출산 억제로 안정</span><br><span style="color:var(--bad)">－ 학교 운영 부담으로 수요↑ · 자원 소모</span></div><div class="hint" id="hE"></div></div>
         <div class="sl" style="margin-bottom:0"><label>건설 <b id="vB"></b></label><input type="range" id="sB" min="0" max="100" value="30"><div class="pc"><span style="color:var(--good)">＋ 인구 한도↑ · 온실 공급</span><br><span style="color:var(--bad)">－ 서식지 잠식 · 유지비 · 건설 오염</span></div><div class="hint" id="hB"></div></div>
       </div>
@@ -301,6 +301,7 @@ button:disabled{opacity:.4;cursor:not-allowed}
     </ul>
     <p><b>게임 오버</b> (직접 끝낼 수는 없습니다)</p>
     <ul>
+      <li><b>기술의 자기가속</b>: 기술은 쌓일수록 발전 속도가 빨라지지만, 초·중기에는 산업 오염과 소비도 함께 커지고(산업혁명), 기술이 충분히 높아져야 오염이 줄기 시작합니다. 개발을 올릴 때는 정화·조림을 함께 준비하세요.</li>
       <li><b>모든 슬라이더는 양면성</b>이 있습니다. 올리면 이득이 늘지만 대가도 함께 커져서, 대부분 중간쯤에서 가장 좋고 끝까지 올리면 오히려 손해입니다. 각 슬라이더 밑의 ＋/－ 설명을 보세요.</li>
       <li><b>인류 적응·공생</b>: 인류를 외계 환경에 맞추는 '적응'(생체 개조)을 키우면 외계 생물을 더 잘 소화해 같은 채집·수렵에서 더 많이 얻고 식량 수요가 줄어듭니다. '공생·동화'를 키우면 정착지 주변의 동물이 보호받고 죽이지 않고도 자원을 내놓습니다. 둘 다 자원을 계속 써야 오르고, 멈추면 서서히 줄며, 공존 가산점도 늘려 줍니다.</li>
       <li><b>동면 진화</b>: 소비자는 환경이 맞지 않으면 동면(지도에서 파란 테두리, 💤)에 들어갑니다. 동면 직전에는 배불러도 최대한 먹어 에너지를 비축하고, 동면 중에는 에너지를 거의 쓰지 않지만 포식자에게 쉽게 잡힙니다. 나쁜 환경이 이어지면 몇 해 만에 더 쉽게 동면하도록 진화하고, 환경이 좋아지면 다시 퇴화합니다. 동면 중에는 번식하지 않으므로 환경을 너무 오래 망가뜨리면 소용없습니다.</li>
@@ -554,8 +555,8 @@ class Sim {
       this.ev.left--; const k = this.ev.left / this.ev.dur; const env = Math.sin(Math.PI * (1 - k));
       this.evT = this.ev.dT * env; this.evH = this.ev.dH * env; this.radStorm = this.ev.rad ? env : 0;
       if (this.ev.left <= 0) { this.say(this.ev.name + ' 종료', 'info'); this.ev = null; this.evT = 0; this.evH = 0; this.radStorm = 0; }
-    } else if (this.clim.ev > 0) {
-      const p = this.clim.ev / TPY * (this.stabLeft > 0 ? 0.4 : 1);
+    } else if (this.clim.ev + 0.004 * this.year() > 0) {
+      const p = Math.min(0.45, this.clim.ev + 0.004 * this.year()) / TPY * (this.stabLeft > 0 ? 0.4 : 1);
       if (r() < p) {
         const list = [{ name: '폭염', dT: 9, dH: -5 }, { name: '한파', dT: -9, dH: 0 }, { name: '가뭄', dT: 2, dH: -24 }, { name: '호우', dT: -1, dH: 24 }];
         if (this.rad >= 1.5) list.push({ name: '항성 플레어(방사선 폭풍)', dT: 0, dH: 0, rad: 1 });
@@ -694,7 +695,7 @@ class Sim {
   stepHuman() {
     const civ = this.civ, rng = this.rng, type = this.type, plant = this.plant;
     const D0 = this.P0 * DPC;
-    this.growth = 1 + 0.07 * this.year();             // 시간이 갈수록 커지는 소비 압력
+    const yr = this.year(); this.growth = 1 + 0.07 * yr + 0.0025 * yr * yr;   // 시간이 갈수록 소비 압력이 가속             // 시간이 갈수록 커지는 소비 압력
     const yEff = this.hvYield * (1 + this.tech) * (1 + 1.0 * this.adapt);        // 기술이 높을수록 같은 채집·수렵에서 더 많이 얻음
     let supply = 0;
     const lab = 1 - 0.4 * this.purify - 0.3 * this.forest;   // 정화·조림에 노동력을 돌리면 채집·수렵·산업 인력이 줄어듦
@@ -711,11 +712,11 @@ class Sim {
     } else this.symSup = 0;
     const prod = this.industry * civ.ind * (1 + 0.5 * this.tech) * lab * (1 - 0.4 * this.forest); supply += prod;   // 숲이 넓을수록 공장·시설을 지을 공간이 줄어듦
     this.Tg += 0.02 * this.industry * (1 + civ.ind / 10);   // 산업 폐열
-    this.pollution = Math.min(1, this.pollution + 0.0004 * this.birth * this.pop / this.P0 + 0.0003 * this.build * this.built + prod * civ.pe * 3 * (1 - 0.6 * this.tech) * (1 + 0.8 * this.dev));
+    this.pollution = Math.min(1, this.pollution + 0.0004 * this.birth * this.pop / this.P0 + 0.0003 * this.build * this.built + prod * civ.pe * 3 * (1 + 2.5 * this.tech) * (1 - 0.7 * this.tech * this.tech) * (1 + 0.8 * this.dev));   // 환경 쿠즈네츠 곡선: 기술 중반에 오염 최대, 고도화되면 청정화
     // 건설: 온실·수경재배(생태계와 무관한 공급) / 유지비 / 서식지 잠식
     const green = this.built * 0.8 * D0; const upkeep = this.built * 0.3 * D0;
     supply += green; this.greenNow = green;
-    const D = this.pop * DPC * this.growth * (1 - 0.4 * this.edu) * (1 + 0.3 * this.school) * (1 - 0.5 * this.adapt) * (1 - 0.35 * this.ration);
+    const D = this.pop * DPC * this.growth * (1 - 0.4 * this.edu) * (1 + 0.6 * this.tech) * (1 + 0.3 * this.school) * (1 - 0.5 * this.adapt) * (1 - 0.35 * this.ration);
     this.demandNow = D; this.supplyNow = supply;
     let avail = this.res + supply - upkeep, w, left;
     if (avail >= D) { left = avail - D; w = 1; } else { w = Math.max(0, avail) / D; left = 0; }
@@ -729,7 +730,7 @@ class Sim {
     this.symb += 0.006 * this.symbS * f * (1 - this.symb) - 0.0008 * this.symb;
     if (this.adapt < 0) this.adapt = 0; if (this.symb < 0) this.symb = 0;
     this.pollution = Math.max(0, this.pollution - 0.003 * this.forest * f);   // 숲은 오염을 흡수
-    this.tech += 0.0020 * this.dev * f * (1 - this.tech) - 0.0002 * this.tech;
+    this.tech += 0.0045 * this.dev * f * (1 - this.tech) * (1 + 3 * this.tech) - 0.0002 * this.tech;   // 자기가속: 지식이 쌓일수록 발전 속도↑
     this.edu += 0.0020 * this.school * f * (1 - this.edu) - 0.0006 * this.edu;
     this.built += 0.0030 * this.build * f * (1 - this.built) * (1 - 0.5 * this.forest);
     if (this.forest > 0.05) this.built = Math.min(this.built, 1 - 0.6 * this.forest);   // 개발 가능한 부지 상한
@@ -899,6 +900,7 @@ if (typeof module !== 'undefined') module.exports = { DEFAULTS, Sim, PLANETS, CI
 /* ★ 부스 운영 전에 바꾸세요 */
 const STAFF_PIN = '4359';          // 스태프 확인 PIN
 const SECRET = 'TF-dccecc721c76059a'; // 확인 코드 서명용 비밀 문자열
+const FESTIVAL_SEED = null;       // 숫자(예: 20261026)를 넣으면 모두 같은 세계로 플레이 → 운 요소 제거, 더 공정한 비교
 const MISSION_BONUS = 1.3;         // 미션 성공 시 시작 자원 배율
 let playerName = '', missionOK = false;
 function cyrb53(str, seed = 0){
@@ -986,7 +988,7 @@ function confirmMission(){
 function startGame(){
   if(!missionOK) return;
   missionOK=false; // 한 번의 승인으로 한 판만
-  const seed=(Math.random()*4294967295)>>>0; cfg.seed=seed;
+  const seed=(FESTIVAL_SEED!==null)?FESTIVAL_SEED:(Math.random()*4294967295)>>>0; cfg.seed=seed;
   sim = new Sim({ planet: curPlanet(), species: cfg.species.map(a=>a.slice()), civ: cfg.civ, seed });
   sim.res *= MISSION_BONUS;
   $('sAd').value=0; $('sSy').value=0; $('sBi').value=Math.round(sim.bias*100); $('sPu').value=0; $('sFo').value=0; $('sRa').value=0; $('sBr').value=Math.round(sim.birth*100); $('sG').value=Math.round(sim.gather*100); $('sHu').value=Math.round(sim.hunt*100); $('sI').value=Math.round(sim.industry*100); $('sD').value=Math.round(sim.dev*100); $('sE').value=Math.round(sim.school*100); $('sB').value=Math.round(sim.build*100);
@@ -1133,7 +1135,7 @@ function updateUI(){
   $('hAd').textContent='적응도 '+Math.round(sim.adapt*100)+'% · 외계 생물을 더 잘 소화하고 식량 수요가 줄어듦'; $('hSy').textContent='동화도 '+Math.round(sim.symb*100)+'% · 정착지 주변 동물이 보호받고, 죽이지 않고도 자원을 줌 (+'+sim.symSup.toFixed(1)+'/틱)';
   $('vBi').textContent=Math.round(sim.bias*100)+'%'; $('vPu').textContent=Math.round(sim.purify*100)+'%'; $('vFo').textContent=Math.round(sim.forest*100)+'%'; $('vRa').textContent=Math.round(sim.ration*100)+'%'; $('vBr').textContent=Math.round(sim.birth*100)+'%';
   $('vD').textContent=Math.round(sim.dev*100)+'%'; $('vE').textContent=Math.round(sim.school*100)+'%'; $('vB').textContent=Math.round(sim.build*100)+'%';
-  $('hD').textContent='기술 '+Math.round(sim.tech*100)+'% — 같은 채집·수렵에서 더 많이 얻고 오염이 줄어듭니다';
+  $('hD').textContent='기술 '+Math.round(sim.tech*100)+'% — '+(sim.tech<0.25?'초기: 쌓일수록 발전이 빨라지지만 산업 오염과 소비가 함께 커집니다':sim.tech<0.65?'중기: 오염 배출이 정점. 정화·조림 병행 필요':'후기: 기술이 청정화로 이어져 오염이 줄기 시작합니다');
   $('hE').textContent='교육 수준 '+Math.round(sim.edu*100)+'% — 1인당 소비와 인구 증가가 줄어듭니다';
   $('hB').textContent='건설지 '+Math.round(sim.built*100)+'% — 온실 공급·인구 한도 증가, 대신 서식지가 사라집니다';
   $('resNow').textContent='자원 '+fmt(sim.res); $('envnow').textContent='평균 '+sim.Tg.toFixed(1)+'℃ · 습도 '+sim.Hg.toFixed(0)+'%';
