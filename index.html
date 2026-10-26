@@ -323,6 +323,7 @@ button:disabled{opacity:.4;cursor:not-allowed}
       <li>스태프가 확인하면 <b>확인 PIN</b>을 입력해 정착지로 출발합니다.</li>
       <li>미션 성공 보너스: 시작 자원 +30%</li>
     </ul>
+    <label id="mKeepRow" class="hidden" style="display:flex;gap:8px;align-items:center;font-size:13.5px;margin-top:8px"><input type="checkbox" id="mKeep"> 지난 판의 슬라이더 값을 이어서 쓰기</label>
     <div class="env" style="grid-template-columns:1fr;margin:12px 0">
       <div><label>이름 또는 팀 이름</label><input id="mName" maxlength="14" autocomplete="off" style="width:100%;background:#f7f5ef;border:1px solid var(--line);border-radius:9px;padding:9px;color:var(--text);font:inherit"></div>
       <div><label>스태프 확인 PIN</label><input id="mPin" type="password" inputmode="numeric" autocomplete="off" style="width:100%;background:#f7f5ef;border:1px solid var(--line);border-radius:9px;padding:9px;color:var(--text);font:inherit"></div>
@@ -975,12 +976,12 @@ function refreshSetup(keepSpecies){
 }
 
 /* ---------- 게임 시작 ---------- */
-function openMission(){ $('mPin').value=''; $('mErr').textContent=''; $('mName').value=playerName; $('modalEnd').classList.add('hidden'); $('modalMission').classList.remove('hidden'); setTimeout(()=>$('mName').focus(),50); }
+function openMission(){ $('mKeepRow').classList.toggle('hidden',!lastCtl); $('mKeepRow').style.display=lastCtl?'flex':'none'; $('mKeep').checked=!!(lastCtl&&keepNext); $('mPin').value=''; $('mErr').textContent=''; $('mName').value=playerName; $('modalEnd').classList.add('hidden'); $('modalMission').classList.remove('hidden'); setTimeout(()=>$('mName').focus(),50); }
 function closeMission(){ $('modalMission').classList.add('hidden'); }
 function confirmMission(){
   const n=$('mName').value.trim(); if(!n){ $('mErr').textContent='이름을 입력해 주세요.'; return; }
   if($('mPin').value!==STAFF_PIN){ $('mErr').textContent='PIN이 맞지 않습니다. 스태프에게 확인받으세요.'; return; }
-  playerName=n; missionOK=true; closeMission(); startGame();
+  playerName=n; missionOK=true; keepNext=!!(lastCtl&&$('mKeep').checked); closeMission(); startGame();
 }
 function startGame(){
   if(!missionOK) return;
@@ -989,6 +990,7 @@ function startGame(){
   sim = new Sim({ planet: curPlanet(), species: cfg.species.map(a=>a.slice()), civ: cfg.civ, seed });
   sim.res *= MISSION_BONUS;
   $('sAd').value=0; $('sSy').value=0; $('sBi').value=Math.round(sim.bias*100); $('sPu').value=0; $('sFo').value=0; $('sRa').value=0; $('sBr').value=Math.round(sim.birth*100); $('sG').value=Math.round(sim.gather*100); $('sHu').value=Math.round(sim.hunt*100); $('sI').value=Math.round(sim.industry*100); $('sD').value=Math.round(sim.dev*100); $('sE').value=Math.round(sim.school*100); $('sB').value=Math.round(sim.build*100);
+  if(keepNext && lastCtl){ Object.assign(sim,lastCtl); syncSliders(); } keepNext=false;
   paused=false; speed=1; acc=0; view='eco'; pickMode=false; ended=false; logLen=-1;
   $('setup').classList.add('hidden'); $('game').classList.remove('hidden'); $('modalEnd').classList.add('hidden');
   $('gPlanet').textContent = PLANETS[cfg.pi].name;
@@ -998,6 +1000,12 @@ function startGame(){
   document.querySelectorAll('#views button').forEach(b=>b.classList.toggle('sel',b.dataset.v==='eco'));
   window.scrollTo(0,0); lastTs=0; requestAnimationFrame(frame);
 }
+const CTL=[['sG','gather'],['sHu','hunt'],['sBi','bias'],['sI','industry'],['sPu','purify'],['sFo','forest'],['sRa','ration'],['sBr','birth'],['sAd','adaptS'],['sSy','symbS'],['sD','dev'],['sE','school'],['sB','build']];
+let lastCtl=null, keepNext=false;
+function snapCtl(){ lastCtl={}; CTL.forEach(([id,k])=>lastCtl[k]=sim[k]); }
+function syncSliders(){ CTL.forEach(([id,k])=>{ $(id).value=Math.round(sim[k]*100); }); }
+function retry(keep){ keepNext=!!keep; openMission(); }
+function nextPerson(){ lastCtl=null; keepNext=false; Object.assign(cfg,{pi:1,custom:false,picked:false,civ:0}); selectPlanet(1); backToSetup(); }
 function backToSetup(){ sim=null; $('game').classList.add('hidden'); $('setup').classList.remove('hidden'); $('modalEnd').classList.add('hidden'); }
 
 document.querySelectorAll('[data-sp]').forEach(b=>b.onclick=()=>{speed=+b.dataset.sp;document.querySelectorAll('[data-sp]').forEach(x=>x.classList.toggle('sel',x===b));});
@@ -1188,7 +1196,8 @@ function showEnd(){
       <div><span>인구</span><b>${fmt(sim.pop)}</b></div><div><span>오염도</span><b>${Math.round(sim.pollution*100)}%</b></div>
     </div>
     <p>${hint}</p>${best}
-    <p style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px"><button class="btn ghost sm" onclick="backToSetup()">처음으로 (다음 사람)</button><button class="btn sm" onclick="openMission()">같은 설정으로 다시</button></p>`;
+    <p style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px"><button class="btn ghost sm" onclick="nextPerson()">처음으로 (다음 사람)</button><button class="btn ghost sm" onclick="backToSetup()">설정 바꾸기</button><button class="btn ghost sm" onclick="retry(false)">슬라이더 초기값으로 다시</button><button class="btn sm" onclick="retry(true)">내 슬라이더 값 유지하고 다시</button></p>`;
+  snapCtl();
   const yTxt=yrs.toFixed(1), sInt=Math.round(sim.score), code=makeCode(playerName,sInt,yTxt,cfg.seed);
   const row=[playerName,PLANETS[cfg.pi].name,CIVS[cfg.civ].name,o.title,yTxt,sInt,cfg.seed,code].join('\t');
   const box=document.createElement('div');
