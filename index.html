@@ -47,6 +47,25 @@ input[type=range]{width:100%;accent-color:var(--accent)}
 .sp-row{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:10px}
 .sp-row h3{font-size:13.5px;margin-bottom:8px;display:flex;align-items:center;gap:8px}
 .dot{width:10px;height:10px;border-radius:50%;display:inline-block}
+.sp-edit{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:10px}
+.pop-wrap{display:grid;grid-template-columns:270px 1fr;gap:0;height:min(78vh,640px);background:var(--panel);border-radius:16px;overflow:hidden;width:min(980px,96vw)}
+.pop-left{background:var(--panel2);border-right:1px solid var(--line);overflow-y:auto;padding:14px}
+.pop-left h4{margin:0 0 10px;font-size:15px}
+.ptab{display:block;width:100%;text-align:left;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:8px 10px;margin-bottom:8px}
+.ptab.sel{border-color:var(--accent);background:#e3f4ec;box-shadow:0 0 0 1px var(--accent) inset}
+.ptab .t1{display:flex;justify-content:space-between;font-size:13px;font-weight:700}
+.ptab .t1 span{color:var(--accent)}
+.ptab small{color:var(--muted);font-size:11px}
+.ptab input{width:100%;margin-top:4px}
+.pop-right{overflow-y:auto;padding:18px 24px}
+.pop-right h3{font-size:17px;margin-bottom:2px}
+.pop-right .grpt{font-size:12.5px;font-weight:700;color:var(--accent2);margin:18px 0 4px}
+.prow{padding:10px 0;border-bottom:1px solid var(--line)}
+.prow .pl{display:flex;justify-content:space-between;font-weight:700;font-size:14px}
+.prow .pl b{color:var(--accent)}
+.prow .pd{font-size:12px;color:var(--muted);margin:2px 0 4px}
+.prow .pe{font-size:11.5px;margin-top:2px}
+@media(max-width:760px){.pop-wrap{grid-template-columns:1fr;height:88vh}.pop-left{max-height:30vh;border-right:0;border-bottom:1px solid var(--line)}}
 .sp-opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px}
 .sp{background:#f7f5ef;border:1px solid var(--line);border-radius:10px;padding:8px 10px;text-align:left}
 .sp.sel{border-color:var(--accent);background:#e3f4ec}
@@ -171,7 +190,7 @@ button:disabled{opacity:.4;cursor:not-allowed}
     <h2><span class="n">3</span>도입할 생물종</h2>
     <div class="sub">생산자와 1~4차 소비자마다 <b>2종</b>씩 고릅니다(같은 층의 두 종은 먹이·자리를 두고 경쟁합니다). 막대는 이 행성 환경에 대한 적합도이며, 맞지 않는 종도 일부러 고를 수 있습니다 — 점수 배율은 오르지만 온도·습도를 맞추지 못하면 멸종합니다. 시작 후 5년은 멸종 유예 기간입니다.</div>
     <div id="species"></div>
-    <button class="btn ghost sm" onclick="autoSpecies()">환경에 맞게 자동 추천</button>
+    <div class="sp-edit"><button class="btn ghost sm" onclick="autoSpecies()">환경에 맞게 자동 추천</button><button class="btn sm" onclick="openSpecEditor()">⚙ 종 특성 설정 (팝업)</button><span style="font-size:12px;color:var(--muted)" id="parNote"></span></div>
   </div>
 
   <div class="step">
@@ -186,6 +205,7 @@ button:disabled{opacity:.4;cursor:not-allowed}
       <div class="mrow"><span>문명 수준 배율</span><b id="mCiv"></b></div>
       <div class="mrow"><span>기후 배율</span><b id="mClim"></b></div>
       <div class="mrow"><span>환경 적합도 보정 (<span id="mMatch"></span>)</span><b id="mEnv"></b></div>
+      <div class="mrow"><span>종 특성 극단 가산</span><b id="mTr"></b></div>
       <div class="mrow" style="border-top:1px solid var(--line);margin-top:4px;padding-top:6px"><span>종합 배율</span><b id="mTot"></b></div>
     </div>
     <div style="text-align:center">
@@ -301,6 +321,7 @@ button:disabled{opacity:.4;cursor:not-allowed}
     </ul>
     <p><b>게임 오버</b> (직접 끝낼 수는 없습니다)</p>
     <ul>
+      <li><b>종 특성</b>: 설정 화면의 '종 특성 설정' 팝업에서 종마다 이동 확률, 탐색·이동 거리, step당 에너지 소모, 에너지 흡수율, 번식 확률, 번식 시 요구 에너지, 최대 수명, 시작 개체 수를 정할 수 있습니다(생산자는 초기 밀도·성장 속도·키·수명). 한 종을 강하게 만들면 먹이가 되는 하위 종이 무너질 수 있고, 생산자의 키가 크면 은신처가 되어 포식자가 1차 소비자를 잡지 못합니다. 기본값에서 멀수록 점수 배율이 조금 올라갑니다.</li>
       <li><b>기술의 자기가속</b>: 기술은 쌓일수록 발전 속도가 빨라지지만, 초·중기에는 산업 오염과 소비도 함께 커지고(산업혁명), 기술이 충분히 높아져야 오염이 줄기 시작합니다. 개발을 올릴 때는 정화·조림을 함께 준비하세요.</li>
       <li><b>모든 슬라이더는 양면성</b>이 있습니다. 올리면 이득이 늘지만 대가도 함께 커져서, 대부분 중간쯤에서 가장 좋고 끝까지 올리면 오히려 손해입니다. 각 슬라이더 밑의 ＋/－ 설명을 보세요.</li>
       <li><b>인류 적응·공생</b>: 인류를 외계 환경에 맞추는 '적응'(생체 개조)을 키우면 외계 생물을 더 잘 소화해 같은 채집·수렵에서 더 많이 얻고 식량 수요가 줄어듭니다. '공생·동화'를 키우면 정착지 주변의 동물이 보호받고 죽이지 않고도 자원을 내놓습니다. 둘 다 자원을 계속 써야 오르고, 멈추면 서서히 줄며, 공존 가산점도 늘려 줍니다.</li>
@@ -314,6 +335,14 @@ button:disabled{opacity:.4;cursor:not-allowed}
   </div>
 </div>
 
+
+<div id="modalSpec" class="modal hidden">
+  <div class="pop-wrap">
+    <div class="pop-left" id="popLeft"></div>
+    <div class="pop-right"><div id="popRight"></div>
+      <p style="display:flex;gap:8px;justify-content:flex-end;margin-top:18px"><button class="btn ghost sm" onclick="resetSpecPar()">이 종 기본값으로</button><button class="btn sm" onclick="closeSpecEditor()">닫기</button></p></div>
+  </div>
+</div>
 
 <div id="modalMission" class="modal hidden">
   <div class="mbox">
@@ -403,6 +432,19 @@ const CATCH = [0, 0, 0.37, 0.66, 0.49];
 const GP = 35;
 const PREP = [0, 0.285, 0.075, 0.093, 0.057];
 const PDIE = [0, 0.0096, 0.0067, 0.0076, 0.0052];
+/* 종별 설정 파라미터 (소비자 1~4차 / 생산자 0차). 기본값은 지금까지의 균형값 */
+const ABS_DEF = [0, 0.70, 0.66, 0.58, 0.78];
+const PARAM_DEF = [
+  { init: 50, growth: 100, height: 50, life: 50 },
+  { moveP: 1.0, range: 1, met: MET[1], absorb: ABS_DEF[1], breedP: PREP[1], breedE: 62, maxAge: 21, init: 150 },
+  { moveP: 0.7, range: 2, met: MET[2], absorb: ABS_DEF[2], breedP: PREP[2], breedE: 80, maxAge: 30, init: 35 },
+  { moveP: 0.7, range: 3, met: MET[3], absorb: ABS_DEF[3], breedP: PREP[3], breedE: 84, maxAge: 26, init: 10 },
+  { moveP: 0.7, range: 4, met: MET[4], absorb: ABS_DEF[4], breedP: PREP[4], breedE: 88, maxAge: 38, init: 4 },
+];
+const PARAM_RANGE = {
+  moveP: [0.05, 1], range: [1, 6], met: [0.08, 2.5], absorb: [0.1, 1], breedP: [0.01, 0.6], breedE: [30, 98], maxAge: [2, 60],
+  initC: [[0, 0], [10, 400], [4, 150], [2, 60], [1, 30]], init: [10, 90], growth: [10, 190], height: [0, 100], life: [0, 100],
+};
 const VIS = [0, 1, 2, 3, 4];
 const REPT = [0, 62, 80, 84, 88], SAT = 80, MOVEC = 0.15, INTF = [0, 0, 0.0035, 0.004, 0.004];
 const MINV = [250, 20, 8, 4, 3];
@@ -470,8 +512,12 @@ function matchScore(cfg) {
 function scoreMult(cfg) {
   const m = matchScore(cfg);
   const env = 1 + (1 - m) * 0.8;
+  let tx = 0, tc = 0;   // 기본값에서 멀수록 배율 가산
+  if (cfg.params) for (let l = 0; l < 5; l++) for (let v = 0; v < 2; v++) { const p = cfg.params[l] && cfg.params[l][v]; if (!p) continue;
+    for (const k in p) { if (k === 'init' && l > 0) continue; const rg = (k === 'init' && l === 0) ? PARAM_RANGE.init : PARAM_RANGE[k]; if (!rg || PARAM_DEF[l][k] === undefined) continue; tx += Math.min(1, Math.abs(p[k] - PARAM_DEF[l][k]) / (rg[1] - rg[0]) * 2); tc++; } }
+  tx = tc ? tx / tc : 0;
   return { match: m, env, civ: CIVS[cfg.civ].mult, clim: CLIMATES[cfg.planet.climate].mult,
-    total: CIVS[cfg.civ].mult * CLIMATES[cfg.planet.climate].mult * env * (1 + 0.15 * Math.max(0, cfg.planet.g - 1) + 0.06 * Math.max(0, cfg.planet.rad - 1) + 0.1 * Math.max(0, (cfg.planet.tilt || 1) - 1)) };
+    traitX: tx, total: CIVS[cfg.civ].mult * CLIMATES[cfg.planet.climate].mult * env * (1 + 0.25 * tx) * (1 + 0.15 * Math.max(0, cfg.planet.g - 1) + 0.06 * Math.max(0, cfg.planet.rad - 1) + 0.1 * Math.max(0, (cfg.planet.tilt || 1) - 1)) };
 }
 
 class Sim {
@@ -480,6 +526,13 @@ class Sim {
     this.rng = mulberry32(cfg.seed || ((Date.now() & 0xffffffff) >>> 0));
     this.civIdx = cfg.civ; this.civ = CIVS[cfg.civ];
     this.sp = cfg.species.map(a => a.slice());
+    // 종별 설정: cfg.params[층][0|1] 에 일부만 지정해도 나머지는 기본값
+    this.P = [0, 1, 2, 3, 4].map(l => [0, 1].map(v => Object.assign({}, PARAM_DEF[l], (cfg.params && cfg.params[l] && cfg.params[l][v]) || {})));
+    this.tf = this.P.map((pair, l) => pair.map(p => l === 0
+      ? { g: p.growth / 100, h: p.height / 100, kF: 1.6 - 1.2 * p.height / 100, pk: 0.4 + 1.2 * p.height / 100, w: 0.2 + 1.6 * p.height / 100, lifeF: Math.max(0.15, 2.2 - 2.4 * p.life / 100) }
+      : { metEff: p.met * (1 + 0.12 * (p.range - PARAM_DEF[l].range)) * (1 + 0.5 * (p.absorb - PARAM_DEF[l].absorb)) * (1 + 0.1 * (p.maxAge / PARAM_DEF[l].maxAge - 1)),
+          escape: Math.max(0.5, Math.min(1.5, 1 - 0.5 * (p.moveP - PARAM_DEF[l].moveP))), maxAgeT: p.maxAge * TPY }));
+    this.age = new Uint16Array(N);
     this.T0 = pl.T; this.H0 = pl.H; this.Tg = pl.T; this.Tt = pl.T; this.Hg = pl.H; this.Ht = pl.H;
     this.clim = CLIMATES[pl.climate]; this.grav = pl.g; this.rad = pl.rad;
     this.gF = Math.pow(pl.g, 0.8);
@@ -518,10 +571,9 @@ class Sim {
     this.score = 0; this.over = null; this.log = []; this.reserves = 0;
     this.hist = []; this.warned = new Array(10).fill(0); this.hs = new Uint8Array(N); this.hib = [0,1,2,3,4].map(()=>[0.12,0.12]); this.fs = [0,1,2,3,4].map(()=>[0,0]); this.fn = [0,1,2,3,4].map(()=>[0,0]); this.hbc = [0,1,2,3,4].map(()=>[0,0]); this.hibSaid = [0,1,2,3,4].map(()=>[0,0]); this.polluteWarn = 0;
     // 초기 배치
-    for (let i = 0; i < N; i++) { const T = this.localT(i), H = this.localH(i), fA = fit(T, H, 0, this.sp[0][0]), fB = fit(T, H, 0, this.sp[0][1]), w = (fA + 0.05) / (fA + fB + 0.1); this.pa[i] = 0.5 * w; this.pb[i] = 0.5 * (1 - w); this.plant[i] = 0.5; }
+    for (let i = 0; i < N; i++) { const T = this.localT(i), H = this.localH(i), fA = fit(T, H, 0, this.sp[0][0]), fB = fit(T, H, 0, this.sp[0][1]), w = (fA + 0.05) / (fA + fB + 0.1); this.pa[i] = (this.P[0][0].init / 100) * w; this.pb[i] = (this.P[0][1].init / 100) * (1 - w); this.plant[i] = this.pa[i] + this.pb[i]; }
     this.cv = [[0, 0], [0, 0], [0, 0], [0, 0], [0, 0]];
-    const init = cfg.initCounts || [0, 300, 70, 20, 8];
-    for (let lv = 1; lv <= 4; lv++) this.seed(lv, init[lv], 55);
+    for (let lv = 1; lv <= 4; lv++) for (let v = 0; v < 2; v++) this.seed(lv, Math.round(this.P[lv][v].init), 55, v);
     for (let k = 0; k < 6; k++) this.stats(true);
   }
   say(msg, kind) { this.log.push({ y: this.year(), msg, kind: kind || 'info' }); if (this.log.length > 60) this.log.shift(); }
@@ -533,7 +585,7 @@ class Sim {
       let bi = -1, bf = -1;
       for (let k = 0; k < 8; k++) { const i = (this.rng() * N) | 0; if (this.type[i] !== 0) continue; const f = fit(this.localT(i), this.localH(i), lv, this.sp[lv][v]); if (f > bf) { bf = f; bi = i; } }
       if (bi < 0) continue;
-      this.type[bi] = lv; this.vr[bi] = v; this.en[bi] = e || 55; this.hs[bi] = 0; placed++;
+      this.type[bi] = lv; this.vr[bi] = v; this.en[bi] = e || 55; this.hs[bi] = 0; this.age[bi] = (this.rng() * 0.3 * this.tf[lv][v].maxAgeT) | 0; placed++;
     }
     return placed;
   }
@@ -583,8 +635,9 @@ class Sim {
       const fA = fit(T, H, 0, sA), fB = fit(T, H, 0, sB); fm[i] = fA > fB ? fA : fB;
       const polF = 1 - 0.65 * this.pollution * (this.reserve[i] ? 0.4 : 1);
       let a = pa[i], b = pb[i]; const P = a + b, k = 0.55 * this.fert[i] * radF * polF;
-      a += k * fA * a * (1 - (a + ALPHA * b) / PK) - 0.03 * (1 - fA) * a;
-      b += k * fB * b * (1 - (b + ALPHA * a) / PK) - 0.03 * (1 - fB) * b;
+      const tA = this.tf[0][0], tB = this.tf[0][1];
+      a += k * tA.g * tA.kF * fA * a * (1 - (a + ALPHA * (tB.w / tA.w) * b) / (PK * tA.pk)) - 0.03 * (1 - fA) * tA.lifeF * a;
+      b += k * tB.g * tB.kF * fB * b * (1 - (b + ALPHA * (tA.w / tB.w) * a) / (PK * tB.pk)) - 0.03 * (1 - fB) * tB.lifeF * b;
       if (P < 0.12) {
         const x = i % GW, y = (i / GW) | 0;
         const j1 = y * GW + (x + 1) % GW, j2 = y * GW + (x + GW - 1) % GW, j3 = ((y + 1) % GH) * GW + x, j4 = ((y + GH - 1) % GH) * GW + x;
@@ -611,33 +664,40 @@ class Sim {
       if (!lv || stamp[i] === t) continue;
       stamp[i] = t;
       const x = i % GW, y = (i / GW) | 0;
-      const vi = vr[i];
+      const vi = vr[i]; const tf = this.tf[lv][vi], pp = this.P[lv][vi];
       const f = fit(this.localT(i), this.localH(i), lv, this.sp[lv][vi]);
-      const hs = this.hs, thr = this.hib[lv][vi];
+      const hs = this.hs, age = this.age, thr = this.hib[lv][vi];
       this.fs[lv][vi] += f; this.fn[lv][vi]++;
       if (hs[i]) {   // 동면 중: 대사 최소화, 이동·사냥·번식 없음, 은신해서 환경 사망률도 낮음
         if (f >= thr + 0.08) hs[i] = 0;
         else { const e2 = en[i] - MET[lv] * 0.1; if (e2 <= 0 || rng() < PDIE[lv] * 0.5) { type[i] = 0; en[i] = 0; hs[i] = 0; } else en[i] = e2; continue; }
       } else if (f < thr) { hs[i] = 1; continue; }
       const prep = f < thr + 0.18;   // 동면 직전: 포만과 무관하게 최대한 먹어 에너지 비축
-      let e = en[i] - MET[lv] * gF * (1 + 1.5 * (1 - f));
+      if (++age[i] >= tf.maxAgeT) { type[i] = 0; en[i] = 0; hs[i] = 0; continue; }   // 최대 수명
+      let e = en[i] - tf.metEff * gF * (1 + 1.5 * (1 - f));
       const pd = PDIE[lv] * (1 + rad * 0.15 + storm * 3 + this.pollution * 1.5) * (1 + (1 - f));
       let pdd = pd;
       if (this.symb > 0.02 && lv <= 2) { const ddx = x - SX, ddy = y - SY, R = 4 + 10 * this.symb; if (ddx * ddx + ddy * ddy < R * R) pdd *= 1 - 0.6 * this.symb; }
       if (lv >= 2) { let nb = 0; for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) { if (!dx && !dy) continue; if (type[wrap(x + dx, y + dy)] === lv) nb++; } pdd += INTF[lv] * nb; }
       if (e <= 0 || rng() < pdd) { type[i] = 0; en[i] = 0; continue; }
       let ni = i, cx = x, cy = y;
-      const moveTo = (j, nx, ny) => { type[j] = lv; vr[j] = vi; hs[j] = 0; stamp[j] = t; type[i] = 0; en[i] = 0; ni = j; cx = nx; cy = ny; e -= MOVEC; };
+      const moveTo = (j, nx, ny) => { type[j] = lv; vr[j] = vi; hs[j] = 0; stamp[j] = t; type[i] = 0; en[i] = 0; age[j] = age[i]; ni = j; cx = nx; cy = ny; e -= MOVEC; };
       if (lv === 1) {
-        if (plant[i] < 0.25) {
-          let best = -1, bv = 0.25, bx = 0, by = 0; const s0 = (rng() * 8) | 0;
-          for (let q = 0; q < 8; q++) { const d = (q + s0) & 7; const nx = (x + DX[d] + GW) % GW, ny = (y + DY[d] + GH) % GH; const j = ny * GW + nx; if (type[j] === 0 && plant[j] > bv) { bv = plant[j]; best = j; bx = nx; by = ny; } }
+        if (plant[i] < 0.25 && rng() < pp.moveP) {
+          const R1 = pp.range; let best = -1, bv = 0.25, bd1 = 99, bx = 0, by = 0, tdx1 = 0, tdy1 = 0;
+          for (let dy = -R1; dy <= R1; dy++) for (let dx = -R1; dx <= R1; dx++) {
+            if (!dx && !dy) continue; const nx = (x + dx + GW) % GW, ny = (y + dy + GH) % GH; const j = ny * GW + nx;
+            if (type[j] === 0 && plant[j] > bv) { const d = Math.max(Math.abs(dx), Math.abs(dy)); if (plant[j] > bv + 0.02 || d < bd1) { bv = plant[j]; bd1 = d; tdx1 = dx; tdy1 = dy; best = j; } }
+          }
+          if (best >= 0 && bd1 > 1) {   // 먼 곳의 풀밭 쪽으로 한 칸 이동
+            const nx = (x + Math.sign(tdx1) + GW) % GW, ny = (y + Math.sign(tdy1) + GH) % GH; const j = ny * GW + nx; if (type[j] === 0) { best = j; bx = nx; by = ny; } else best = -1;
+          } else if (best >= 0) { bx = best % GW; by = (best / GW) | 0; }
           if (best < 0) { const d = (rng() * 8) | 0; const nx = (x + DX[d] + GW) % GW, ny = (y + DY[d] + GH) % GH; const j = ny * GW + nx; if (type[j] === 0) { best = j; bx = nx; by = ny; } }
           if (best >= 0) moveTo(best, bx, by);
         }
-        if (plant[ni] >= 0.25) { const a = this.takePlant(ni, 0.2); e += a * GP; }
+        if (plant[ni] >= 0.25) { const a = this.takePlant(ni, 0.2); e += a * 50 * pp.absorb; }
       } else {
-        const R = VIS[lv]; let tj = -1, bd = 99, tdx = 0, tdy = 0, cnt = 0;
+        const R = Math.max(1, Math.round(pp.range)); let tj = -1, bd = 99, tdx = 0, tdy = 0, cnt = 0;
         if (e < SAT || prep) {
           for (let dy = -R; dy <= R; dy++) for (let dx = -R; dx <= R; dx++) {
             if (!dx && !dy) continue; const j = wrap(x + dx, y + dy);
@@ -648,18 +708,23 @@ class Sim {
             }
           }
         }
-        if (tj >= 0 && bd <= 1) { if (rng() < CATCH[lv] * (hs[tj] ? 2 : 1)) { type[tj] = 0; en[tj] = 0; e = Math.min(EMAX, e + GAIN[lv]); } }
+        if (tj >= 0 && bd <= 1) { let cf = CATCH[lv] * (hs[tj] ? 2 : 1) * this.tf[lv - 1][vr[tj]].escape;
+          if (lv === 2) {   // 키 큰 식물이 은신처가 되어 1차 소비자를 보호
+            const pa_ = this.pa[tj], pb_ = this.pb[tj], ps = pa_ + pb_;
+            if (ps > 0.01) { const hE = (pa_ * this.tf[0][0].h + pb_ * this.tf[0][1].h) / ps; cf *= Math.max(0.05, Math.min(1.6, 1 - 2.0 * (hE - 0.5) * Math.min(1, ps / 0.6))); }
+          }
+          if (rng() < cf) { const pe = en[tj]; if (this.killStat) { this.killStat[lv][0] += pe; this.killStat[lv][1]++; } type[tj] = 0; en[tj] = 0; e = Math.min(EMAX, e + pp.absorb * pe); } }
         else if (tj >= 0) {
           const sx = Math.sign(tdx), sy = Math.sign(tdy);
           const cands = [[sx, sy], [sx, 0], [0, sy]];
           for (const [ax, ay] of cands) { if (!ax && !ay) continue; const nx = (x + ax + GW) % GW, ny = (y + ay + GH) % GH; const j = ny * GW + nx; if (type[j] === 0) { moveTo(j, nx, ny); break; } }
-        } else if (rng() < 0.7) {
+        } else if (rng() < pp.moveP) {
           const d = (rng() * 8) | 0; const nx = (x + DX[d] + GW) % GW, ny = (y + DY[d] + GH) % GH; const j = ny * GW + nx; if (type[j] === 0) moveTo(j, nx, ny);
         }
       }
-      if (!prep && e > REPT[lv] && rng() < PREP[lv] * f) {
+      if (!prep && e > pp.breedE && rng() < pp.breedP * f) {
         const s0 = (rng() * 8) | 0;
-        for (let q = 0; q < 8; q++) { const d = (q + s0) & 7; const nx = (cx + DX[d] + GW) % GW, ny = (cy + DY[d] + GH) % GH; const j = ny * GW + nx; if (type[j] === 0) { type[j] = lv; vr[j] = vi; hs[j] = 0; en[j] = e / 2; stamp[j] = t; e /= 2; break; } }
+        for (let q = 0; q < 8; q++) { const d = (q + s0) & 7; const nx = (cx + DX[d] + GW) % GW, ny = (cy + DY[d] + GH) % GH; const j = ny * GW + nx; if (type[j] === 0) { type[j] = lv; vr[j] = vi; hs[j] = 0; age[j] = 0; en[j] = e / 2; stamp[j] = t; e /= 2; break; } }
       }
       en[ni] = e > EMAX ? EMAX : e;
     }
@@ -687,7 +752,7 @@ class Sim {
         const n = cvf[lv][v], crit = n <= 2;
         if (!crit && (n >= MINV[lv] * 0.35 || this.rng() >= RESC[lv])) continue;
         const bi = best(lv, v); if (bi < 0) continue;
-        this.type[bi] = lv; this.vr[bi] = v; this.en[bi] = 60; this.hs[bi] = 0;
+        this.type[bi] = lv; this.vr[bi] = v; this.en[bi] = 60; this.hs[bi] = 0; this.age[bi] = 0;
       }
     }
   }
@@ -892,7 +957,7 @@ class Sim {
   }
 }
 
-if (typeof module !== 'undefined') module.exports = { DEFAULTS, Sim, PLANETS, CIVS, CLIMATES, NICHES, NAMES, LEVEL_LABEL, GW, GH, N, TPY, scoreMult, matchScore, fit, LV_COLOR };
+if (typeof module !== 'undefined') module.exports = { PARAM_DEF, PARAM_RANGE, DEFAULTS, Sim, PLANETS, CIVS, CLIMATES, NICHES, NAMES, LEVEL_LABEL, GW, GH, N, TPY, scoreMult, matchScore, fit, LV_COLOR };
 
 </script>
 <script>
@@ -913,7 +978,7 @@ function cyrb53(str, seed = 0){
 function makeCode(name, score, years, seed){ return cyrb53([name, score, years, seed, SECRET].join('|')); }
 const $ = id => document.getElementById(id);
 const fmt = n => Math.round(n).toLocaleString('ko-KR');
-const cfg = { pi: 1, T: 16, H: 76, climate: 1, g: 0.9, rad: 1.0, tilt: 1, custom: false, species: [[1,2],[1,2],[1,2],[1,2],[1,2]], civ: 0 };
+const cfg = { pi: 1, T: 16, H: 76, par: [0,1,2,3,4].map(()=>[{},{},{},{}]), climate: 1, g: 0.9, rad: 1.0, tilt: 1, custom: false, species: [[1,2],[1,2],[1,2],[1,2],[1,2]], civ: 0 };
 let sim = null, paused = false, speed = 1, acc = 0, lastTs = 0, view = 'eco', pickMode = false, lastUI = 0, logLen = -1, ended = false;
 
 function curPlanet(){ return Object.assign({}, PLANETS[cfg.pi], { T: cfg.T, H: cfg.H, climate: cfg.climate, g: cfg.g, rad: cfg.rad, tilt: cfg.tilt }); }
@@ -950,6 +1015,55 @@ function applyPlanetDefaults(){ const p=PLANETS[cfg.pi]; cfg.T=p.T; cfg.H=p.H; c
 }
 function resetEnv(){ applyPlanetDefaults(); refreshSetup(); 
 }
+function paramsNow(){ return cfg.species.map((pair,lv)=>pair.map(n=>Object.assign({},cfg.par[lv][n]))); }
+
+/* ---------- 종 특성 설정 팝업 ---------- */
+let specSel=null; // [lv,n]
+const PROW={
+  moveP:{l:'이동 확률',u:v=>Math.round(v*100)+'%',st:0.01,d:(lv)=>lv===1?'먹이(식물)가 부족한 칸에 있을 때 이동할 확률':'주변에 먹이가 없을 때 한 step에 이동할 확률',pro:'높을수록 먹이를 빨리 찾고 포식자에게 덜 잡힘',con:'낮으면 한곳에 머물러 굶거나 쉽게 잡힘'},
+  range:{l:'탐색·이동 거리',u:v=>v+' 칸',st:1,d:(lv)=>lv===1?'한 step에 풀밭을 찾을 수 있는 최대 범위':'한 step에 피식자를 찾을 수 있는 최대 범위',pro:'멀리서도 먹이를 찾음',con:'넓게 볼수록 에너지 소모가 늘어남'},
+  met:{l:'step당 에너지 소모',u:v=>v.toFixed(2),st:0.01,d:()=>'먹이를 못 잡아도 매 step 줄어드는 에너지',pro:'낮을수록 굶주림에 강함',con:'너무 낮추기 어려움: 탐색 거리·흡수율·수명을 올리면 이 값이 함께 커짐'},
+  absorb:{l:(lv)=>lv===1?'식물 에너지 흡수율':'피식자 에너지 흡수율',u:v=>Math.round(v*100)+'%',st:0.01,d:(lv)=>lv===1?'식물을 한 번 먹을 때 에너지로 바꾸는 비율':'피식자를 한 번 잡을 때 피식자 에너지의 몇 %를 흡수하는지',pro:'높을수록 먹이를 효율적으로 씀',con:'소화 효율이 높으면 대사 비용이 늘어남'},
+  breedP:{l:'번식 확률',u:v=>(v*100).toFixed(1)+'%',st:0.005,d:()=>'번식 조건을 채웠을 때 한 step에 번식할 확률',pro:'개체 수가 빨리 늘고 회복됨',con:'먹이 폭증 후 붕괴(과잉 번식) 위험'},
+  breedE:{l:'번식 시 요구 에너지',u:v=>Math.round(v),st:1,d:()=>'이 에너지를 넘어야 번식할 수 있음 (번식하면 절반이 새끼에게)',pro:'낮으면 일찍·자주 번식',con:'낮으면 약한 새끼가 많이 태어나 굶어 죽음'},
+  maxAge:{l:'최대 수명',u:v=>v+' 년',st:1,d:()=>'이 나이가 되면 반드시 죽음 (그 전에도 사고·포식으로 죽을 수 있음)',pro:'길면 오래 번식함',con:'길수록 유지 에너지가 늘어남'},
+};
+const PGROUPS=[['이동 · 탐색',['moveP','range']],['사냥 · 에너지',['met','absorb']],['번식 · 수명',['breedP','breedE','maxAge']]];
+function parVal(lv,n,k){ const v=cfg.par[lv][n][k]; return v===undefined?PARAM_DEF[lv][k]:v; }
+function parRange(lv,k){ if(k==='init'&&lv>0) return PARAM_RANGE.initC[lv]; return PARAM_RANGE[k]; }
+function openSpecEditor(){ if(!specSel||!cfg.species[specSel[0]].includes(specSel[1])){ const lv=4; specSel=null; for(let l=4;l>=0&&!specSel;l--) if(cfg.species[l].length) specSel=[l,cfg.species[l][0]]; } if(!specSel) return; $('modalSpec').classList.remove('hidden'); renderSpecEditor(); }
+function closeSpecEditor(){ $('modalSpec').classList.add('hidden'); refreshSetup(); }
+function resetSpecPar(){ if(!specSel) return; cfg.par[specSel[0]][specSel[1]]={}; cfg.custom=cfg.custom; renderSpecEditor(); refreshSummary(); }
+function renderSpecEditor(){
+  // 왼쪽 탭: 4차 → 생산자 순
+  let L='<h4>초기 생태계 구성</h4>';
+  for(let lv=4;lv>=0;lv--) for(const n of cfg.species[lv]){
+    const sel=specSel&&specSel[0]===lv&&specSel[1]===n; const k='init', rg=parRange(lv,k), v=parVal(lv,n,k);
+    const cnt=lv===0?Math.round(v)+' %':Math.round(v)+' 마리';
+    L+=`<div class="ptab ${sel?'sel':''}" data-lv="${lv}" data-n="${n}"><div class="t1">${LEVEL_LABEL[lv]} · ${NAMES[lv][n]}<span>${cnt}</span></div><input type="range" min="${rg[0]}" max="${rg[1]}" step="1" value="${v}" data-k="init"></div>`; }
+  L+='<p style="font-size:11.5px;color:var(--muted)">카드를 누르면 오른쪽에서 그 종을 설정합니다. 아래 슬라이더는 시작할 때의 개체 수(생산자는 초기 밀도)입니다.</p>';
+  $('popLeft').innerHTML=L;
+  $('popLeft').querySelectorAll('.ptab').forEach(c=>{
+    const pick=()=>{ specSel=[+c.dataset.lv,+c.dataset.n]; $('popLeft').querySelectorAll('.ptab').forEach(x=>x.classList.toggle('sel',x===c)); renderSpecRight(); };
+    c.onclick=pick; c.querySelector('input').addEventListener('pointerdown',pick);
+    const inp=c.querySelector('input'); inp.oninput=()=>{ const lv=+c.dataset.lv,n=+c.dataset.n; cfg.par[lv][n].init=+inp.value; c.querySelector('.t1 span').textContent=lv===0?inp.value+' %':inp.value+' 마리'; refreshSummary(); };
+  });
+  renderSpecRight();
+}
+function renderSpecRight(){
+  if(!specSel){ $('popRight').innerHTML=''; return; }
+  const [lv,n]=specSel; let R=`<h3>${LEVEL_LABEL[lv]} · ${NAMES[lv][n]}</h3><div style="font-size:12.5px;color:var(--muted)">${NICHES[n].label} 지대에 적응한 종 · 설정은 이 종에만 적용됩니다.</div>`;
+  if(lv===0){
+    const PR=[['growth','성장 속도',v=>Math.round(v)+'%','식물이 자라는 속도','＋ 빨리 번성','－ 경쟁종을 밀어내고 먹이사슬이 과열됨'],['height','키(높이)',v=>Math.round(v)+'','식물이 자라는 높이. 클수록 포식자의 시야를 가림','＋ 경쟁에 유리·1차 소비자가 은신(포식자가 못 잡음)','－ 성장이 느림'],['life','수명',v=>Math.round(v)+'','식물 개체가 노쇠해 사라지는 속도 (클수록 오래 삼)','＋ 오래 유지','－ 변화에 둔함']];
+    R+='<div class="grpt">성장 · 형태</div>'; for(const [k,l,u,d,pro,con] of PR) R+=prow(lv,n,k,l,u,d,pro,con,1);
+  } else {
+    for(const [g,ks] of PGROUPS){ R+=`<div class="grpt">${g}</div>`; for(const k of ks){ const P=PROW[k]; R+=prow(lv,n,k,typeof P.l==='function'?P.l(lv):P.l,P.u,P.d(lv),'＋ '+P.pro,'－ '+P.con,P.st); } }
+  }
+  $('popRight').innerHTML=R;
+  $('popRight').querySelectorAll('input[type=range]').forEach(inp=>{ inp.oninput=()=>{ const k=inp.dataset.k; const v=+inp.value; cfg.par[lv][n][k]=v; const u=(lv===0?{growth:v=>Math.round(v)+'%',height:v=>Math.round(v),life:v=>Math.round(v)}[k]:PROW[k].u); inp.closest('.prow').querySelector('.pl b').textContent=u(v); refreshSummary(); }; });
+}
+function prow(lv,n,k,l,u,d,pro,con,st){ const rg=parRange(lv,k), v=parVal(lv,n,k);
+  const uf=(typeof u==='function')?u:(x=>x); return `<div class="prow"><div class="pl"><span>${l}</span><b>${uf(v)}</b></div><div class="pd">${d}</div><input type="range" data-k="${k}" min="${rg[0]}" max="${rg[1]}" step="${st}" value="${v}" style="width:100%"><div class="pe"><span style="color:var(--good)">${pro}</span><br><span style="color:var(--bad)">${con}</span></div></div>`; }
 function speciesReady(){ return cfg.species.every(a=>a.length===2);
 }
 function autoSpecies(silent){
@@ -967,13 +1081,17 @@ function refreshSetup(keepSpecies){
     <div class="sp-opts">${[0,1,2,3].map(n=>{const f=speciesFit(lv,n);return `
       <button class="sp ${cfg.species[lv].includes(n)?'sel':''}" data-lv="${lv}" data-n="${n}">
         <b>${NAMES[lv][n]}</b><small>${NICHES[n].label} · 적합도 ${Math.round(f*100)}%</small>
-        <div class="fitbar"><i style="width:${Math.round(f*100)}%;background:${fitColor(f)}"></i></div></button>`}).join('')}</div></div>`).join('');
+        <div class="fitbar"><i style="width:${Math.round(f*100)}%;background:${fitColor(f)}"></i></div></button>`}).join('')}</div>
+    </div>`).join('');
   $('species').querySelectorAll('.sp').forEach(b=>b.onclick=()=>{const lv=+b.dataset.lv,n=+b.dataset.n,s=cfg.species[lv]; const k=s.indexOf(n); if(k>=0) s.splice(k,1); else { if(s.length>=2) return; s.push(n); } refreshSetup();});
-  // 요약
+  { let c=0; cfg.species.forEach((p,lv)=>p.forEach(n=>{ if(Object.keys(cfg.par[lv][n]).length) c++; })); $('parNote').textContent=c?('직접 설정한 종 '+c+'개'):'기본 특성'; }
+  refreshSummary();
+}
+function refreshSummary(){
   { const ok=speciesReady(); $('bGo').disabled=!ok; $('bGo').style.opacity=ok?1:.45; $('spWarn').textContent=ok?'':'각 층마다 종을 2개씩 골라야 시작할 수 있습니다.'; }
-  const m = scoreMult({planet:curPlanet(),species:cfg.species.map(a=>a.length===2?a:[a[0]!==undefined?a[0]:0,a[0]!==undefined?a[0]:0]),civ:cfg.civ});
+  const sp2=cfg.species.map(a=>a.length===2?a:[a[0]!==undefined?a[0]:0,a[0]!==undefined?a[0]:0]); const m = scoreMult({planet:curPlanet(),species:sp2,params:sp2.map((p,lv)=>p.map(n=>cfg.par[lv][n])),civ:cfg.civ});
   $('mCiv').textContent='×'+m.civ.toFixed(2); $('mClim').textContent='×'+m.clim.toFixed(2);
-  $('mMatch').textContent='평균 '+Math.round(m.match*100)+'%'; $('mEnv').textContent='×'+m.env.toFixed(2); $('mTot').textContent='×'+m.total.toFixed(2);
+  $('mMatch').textContent='평균 '+Math.round(m.match*100)+'%'; $('mEnv').textContent='×'+m.env.toFixed(2); $('mTr').textContent='×'+(1+0.25*m.traitX).toFixed(2); $('mTot').textContent='×'+m.total.toFixed(2);
   $('maxLabel').textContent='1년당 최대 점수 (가산 포함)'; $('maxScore').textContent=fmt(160*m.total); $('maxNote').textContent='끝이 없는 게임입니다. 생물이 멸종하거나 인류가 급감할 때까지 얼마나 오래, 얼마나 잘 공존하느냐로 순위가 갈립니다.';
 }
 
@@ -989,7 +1107,7 @@ function startGame(){
   if(!missionOK) return;
   missionOK=false; // 한 번의 승인으로 한 판만
   const seed=(FESTIVAL_SEED!==null)?FESTIVAL_SEED:(Math.random()*4294967295)>>>0; cfg.seed=seed;
-  sim = new Sim({ planet: curPlanet(), species: cfg.species.map(a=>a.slice()), civ: cfg.civ, seed });
+  sim = new Sim({ planet: curPlanet(), species: cfg.species.map(a=>a.slice()), params: paramsNow(), civ: cfg.civ, seed });
   sim.res *= MISSION_BONUS;
   $('sAd').value=0; $('sSy').value=0; $('sBi').value=Math.round(sim.bias*100); $('sPu').value=0; $('sFo').value=0; $('sRa').value=0; $('sBr').value=Math.round(sim.birth*100); $('sG').value=Math.round(sim.gather*100); $('sHu').value=Math.round(sim.hunt*100); $('sI').value=Math.round(sim.industry*100); $('sD').value=Math.round(sim.dev*100); $('sE').value=Math.round(sim.school*100); $('sB').value=Math.round(sim.build*100);
   if(keepNext && lastCtl){ Object.assign(sim,lastCtl); syncSliders(); } keepNext=false;
@@ -1007,7 +1125,7 @@ let lastCtl=null, keepNext=false;
 function snapCtl(){ lastCtl={}; CTL.forEach(([id,k])=>lastCtl[k]=sim[k]); }
 function syncSliders(){ CTL.forEach(([id,k])=>{ $(id).value=Math.round(sim[k]*100); }); }
 function retry(keep){ keepNext=!!keep; openMission(); }
-function nextPerson(){ lastCtl=null; keepNext=false; Object.assign(cfg,{pi:1,custom:false,picked:false,civ:0}); selectPlanet(1); backToSetup(); }
+function nextPerson(){ lastCtl=null; keepNext=false; Object.assign(cfg,{pi:1,custom:false,picked:false,civ:0,par:[0,1,2,3,4].map(()=>[{},{},{},{}])}); selectPlanet(1); backToSetup(); }
 function backToSetup(){ sim=null; $('game').classList.add('hidden'); $('setup').classList.remove('hidden'); $('modalEnd').classList.add('hidden'); }
 
 document.querySelectorAll('[data-sp]').forEach(b=>b.onclick=()=>{speed=+b.dataset.sp;document.querySelectorAll('[data-sp]').forEach(x=>x.classList.toggle('sel',x===b));});
