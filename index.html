@@ -26,7 +26,7 @@ h1,h2,h3{margin:0}
 .step h2{font-size:17px;display:flex;align-items:center;gap:10px}
 .step h2 .n{width:24px;height:24px;border-radius:50%;background:var(--accent);color:#ffffff;font-size:13px;font-weight:700;display:grid;place-items:center}
 .step .sub{color:var(--muted);font-size:13px;margin:4px 0 12px 34px}
-.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
 .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px;text-align:left;transition:.15s;position:relative}
 .card:hover{border-color:#9aa8b4}
 .card.sel{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset;background:#e3f4ec}
@@ -183,6 +183,10 @@ button:disabled{opacity:.4;cursor:not-allowed}
       <div><label>중력 <b id="vG0"></b></label><input type="range" id="rG" min="0.5" max="2" step="0.1"></div>
       <div><label>항성 방사선 <b id="vR0"></b></label><input type="range" id="rR" min="0" max="3" step="0.1"></div>
       <div><label>계절 폭(자전축 기울기) <b id="vTi0"></b></label><input type="range" id="rTi" min="30" max="160" step="5"></div>
+      <div style="grid-column:1/-1;display:flex;gap:14px;align-items:center;flex-wrap:wrap"><canvas id="pmap" width="80" height="48" style="width:240px;height:144px;image-rendering:pixelated;border-radius:10px;border:1px solid var(--line);background:#fff"></canvas>
+        <div style="font-size:12.5px;color:var(--muted);max-width:420px"><b style="color:var(--text)">행성 기후 지도</b> · 칸마다 가장 잘 맞는 기후대<br>
+        <span style="color:rgb(90,150,220)">■</span> 한랭 습윤 <span style="color:rgb(90,180,110)">■</span> 온난 중습 <span style="color:rgb(220,160,70)">■</span> 고온 건조 <span style="color:rgb(40,150,150)">■</span> 고온 다습<br>
+        행성마다 지형이 달라서, 극한 행성에도 다른 기후대가 '피난처'로 남아 있습니다. 진하게 보일수록 그 기후대에 잘 맞는 곳입니다.</div></div>
       <div style="grid-column:1/-1"><label>기후 유형</label><div class="seg" id="climSeg"></div></div>
       <div style="grid-column:1/-1"><button class="btn ghost sm" onclick="resetEnv()">행성 기본 환경으로 되돌리기</button> <span style="font-size:12px;color:var(--muted)">행성을 바꿔도 직접 바꾼 환경과 고른 종은 유지됩니다.</span></div>
     </div>
@@ -190,7 +194,7 @@ button:disabled{opacity:.4;cursor:not-allowed}
 
   <div class="step">
     <h2><span class="n">3</span>도입할 생물종</h2>
-    <div class="sub">생산자와 1~4차 소비자마다 <b>2종</b>씩 고릅니다(같은 층의 두 종은 먹이·자리를 두고 경쟁합니다). 막대는 이 행성 환경에 대한 적합도이며, 맞지 않는 종도 일부러 고를 수 있습니다 — 점수 배율은 오르지만 온도·습도를 맞추지 못하면 멸종합니다. 시작 후 5년은 멸종 유예 기간입니다.</div>
+    <div class="sub">생산자와 1~4차 소비자마다 <b>2종</b>씩 고릅니다(같은 층의 두 종은 먹이·자리를 두고 경쟁합니다). 막대는 이 행성 지도에서 그 종이 살 수 있는 면적(서식지, 적합도 30% 이상인 곳)이며, 맞지 않는 종도 일부러 고를 수 있습니다 — 점수 배율은 오르지만 온도·습도를 맞추지 못하면 멸종합니다. 시작 후 2년은 <b>정착 유예 기간</b>입니다. 이 동안에는 한 종까지 멸종해도 '정착 실패'로 넘어가지만, 한 종이라도 더 멸종하면 바로 끝납니다.</div>
     <div id="species"></div>
     <div class="sp-edit"><button class="btn ghost sm" onclick="autoSpecies()">환경에 맞게 자동 추천</button><button class="btn sm" onclick="openSpecEditor()">⚙ 종 특성 설정 (팝업)</button><span style="font-size:12px;color:var(--muted)" id="parNote"></span></div>
   </div>
@@ -228,6 +232,7 @@ button:disabled{opacity:.4;cursor:not-allowed}
       <span class="stat">경과 <b id="gYear">0</b>년</span>
       <span class="stat">점수 <b id="gScore">0</b></span>
       <span class="stat">공존 가산 <b id="gBonus" style="color:var(--accent)">0</b></span>
+      <span class="stat">생존 가산 <b id="gSurv" style="color:var(--accent2)">0</b></span>
       <span class="stat">연속 공존 <b id="gStreak">0</b>년</span>
     </div>
     <div class="r">
@@ -290,9 +295,11 @@ button:disabled{opacity:.4;cursor:not-allowed}
         <div class="sl"><label>인류 적응(생체 개조) <b id="vAd"></b></label><input type="range" id="sAd" min="0" max="100" value="0"><div class="pc"><span style="color:var(--good)">＋ 채집 효율↑ · 식량 수요↓ (오래 걸림)</span><br><span style="color:var(--bad)">－ 개조 부담: 인구 증가↓·안정↓ · 비용 급증</span></div><div class="hint" id="hAd"></div></div>
         <div class="sl"><label>공생·동화(길들이기) <b id="vSy"></b></label><input type="range" id="sSy" min="0" max="100" value="0"><div class="pc"><span style="color:var(--good)">＋ 동물 보호 · 죽이지 않고 자원 획득</span><br><span style="color:var(--bad)">－ 정착지 주변 식생 과식 · 유지 자원</span></div><div class="hint" id="hSy"></div></div>
         <div class="grp">투자 · 자원을 써서 미래를 만든다</div>
-        <div class="sl"><label>개발(기술) <b id="vD"></b></label><input type="range" id="sD" min="0" max="100" value="10"><div class="pc"><span style="color:var(--good)">＋ 기술 자기가속(쌓일수록 빨라짐) · 효율↑ · 후기엔 청정화</span><br><span style="color:var(--bad)">－ 초·중기 오염 급증(산업혁명형) · 기술↑만큼 소비↑ · 자원 소모</span></div><div class="hint" id="hD"></div></div>
-        <div class="sl"><label>교육 <b id="vE"></b></label><input type="range" id="sE" min="0" max="100" value="10"><div class="pc"><span style="color:var(--good)">＋ 교육↑: 수요·출산 억제로 안정</span><br><span style="color:var(--bad)">－ 학교 운영 부담으로 수요↑ · 자원 소모</span></div><div class="hint" id="hE"></div></div>
-        <div class="sl" style="margin-bottom:0"><label>건설 <b id="vB"></b></label><input type="range" id="sB" min="0" max="100" value="30"><div class="pc"><span style="color:var(--good)">＋ 인구 한도↑ · 온실 공급</span><br><span style="color:var(--bad)">－ 서식지 잠식 · 유지비 · 건설 오염</span></div><div class="hint" id="hB"></div></div>
+        <div class="sl"><label>개발(기술) <b id="vD"></b></label><input type="range" id="sD" min="0" max="100" value="10"><div class="pc"><span style="color:var(--good)">＋ 기술 자기가속 · 채집·산업·온실 효율 크게↑ · 전염병 피해↓ · 후기엔 청정화</span><br><span style="color:var(--bad)">－ 초·중기 오염 급증(산업혁명형) · 소비 조금↑ · 자원 소모</span></div><div class="hint" id="hD"></div></div>
+        <div class="sl"><label>교육 <b id="vE"></b></label><input type="range" id="sE" min="0" max="100" value="10"><div class="pc"><span style="color:var(--good)">＋ 교육↑: 해마다 커지는 소비 압력을 최대 절반까지 늦춤 · 전염병 피해↓</span><br><span style="color:var(--bad)">－ 효과가 느리게 쌓임 · 운영 부담 · 출산↓ · 자원 소모</span></div><div class="hint" id="hE"></div></div>
+        <div class="sl" style="margin-bottom:0"><label>건설 <b id="vB"></b></label><input type="range" id="sB" min="0" max="100" value="30"><div class="pc"><span style="color:var(--good)">＋ 온실 공급(생태계와 무관한 식량, 기술이 높을수록↑) · 인구 한도↑</span><br><span style="color:var(--bad)">－ 정착지 주변 서식지 잠식 · 유지비 · 건설 오염</span></div><div class="hint" id="hB"></div></div>
+        <div class="grp">친환경 혁신 <span style="font-weight:400;color:var(--muted)">· 기술·건설이 조건을 넘으면 해마다 확률로 일어남, 교육이 높을수록 잘 일어남</span></div>
+        <div id="greenBox" style="font-size:12px;line-height:1.5"></div>
       </div>
 
       <div class="box">
@@ -312,7 +319,7 @@ button:disabled{opacity:.4;cursor:not-allowed}
     <ul>
       <li><b>공존 지수</b> = √(생태계 건강 × 인류 안정). 한쪽만 높아서는 점수가 오르지 않습니다.</li>
       <li><b>생산</b> — 채집(식물), 수렵(동물), 산업(오염 발생)으로 자원을 얻습니다. 작은 변화에도 먹이사슬과 기후가 크게 흔들립니다.</li>
-      <li><b>투자</b> — 개발은 기술을 올려 같은 활동에서 더 많이 얻고 오염을 줄입니다. 교육은 1인당 소비와 인구 증가를 줄입니다. 건설은 온실 공급과 인구 한도를 늘리는 대신 정착지 주변 서식지를 없앱니다.</li>
+      <li><b>투자</b> — 개발은 기술을 올려 채집·산업·온실 효율을 크게 높이지만, 초·중기에는 오염이 늘어납니다. 교육은 해마다 커지는 소비 압력의 증가 속도를 늦춥니다(효과가 느리게 쌓임). 건설은 생태계와 무관한 온실 식량과 인구 한도를 늘리는 대신 정착지 주변 서식지를 잠식합니다.</li>
       <li>투자는 식량 수요를 채우고 남은 자원으로만 진행됩니다. 소비 압력은 해마다 커지기 때문에 가만히 있으면 점점 힘들어집니다.</li>
       <li>남는 자원으로 온도·습도 조절, 식생 복원, 종 도입, 보호구역, 녹지 환원 같은 <b>테라포밍 개입</b>도 할 수 있습니다.</li>
     </ul>
@@ -320,6 +327,10 @@ button:disabled{opacity:.4;cursor:not-allowed}
     <ul>
       <li>생태계 건강 55% 이상, 인류 안정 60% 이상인 <b>공존 상태</b>가 이어지면 가산점이 붙습니다. 연속 8년이면 최대 +60%.</li>
       <li>10년 연속으로 공존할 때마다 마일스톤 보너스가 들어옵니다.</li>
+      <li><b>대기 스펙트럼 분석</b>: 사전 미션 뒤 60초 타임어택으로 투과 스펙트럼의 흡수 띠를 보고 대기 속 분자를 찾습니다. 맞힌 분자 +1, 잘못 고른 분자 −1이고, 점수 1당 시작 자원 +4%(최대 +60%)를 받습니다.</li>
+      <li><b>친환경 혁신</b>: 기술이나 건설지가 일정 수준을 넘으면 해마다 일정 확률로 친환경 공정, 정밀 농업, 재생에너지 전환, 생태 건축, 압축 도시 같은 혁신이 일어나 개발의 부작용이 줄어듭니다. 확률은 교육 수준에 비례합니다(교육 0%면 연 8%, 100%면 연 53%).</li>
+      <li><b>돌발 사건</b>: 정착 유예가 끝난 뒤 판마다 무작위로 동물·정착지 전염병, 소행성 충돌, 이주민 유입, 화산 분화, 식물 병해, 광맥 발견, 얼음 혜성 같은 사건이 일어나고, 해가 갈수록 잦아집니다. 미리 정한 설정만으로는 버티기 어려우니 상황을 보고 슬라이더를 바꾸세요.</li>
+      <li><b>생존 가산점</b>: 1년을 버틸 때마다 (경과 연수 × 2 × 점수 배율)점이 더해집니다. 오래 버틸수록 해마다 더 커집니다.</li>
     </ul>
     <p><b>게임 오버</b> (직접 끝낼 수는 없습니다)</p>
     <ul>
@@ -328,7 +339,8 @@ button:disabled{opacity:.4;cursor:not-allowed}
       <li><b>모든 슬라이더는 양면성</b>이 있습니다. 올리면 이득이 늘지만 대가도 함께 커져서, 대부분 중간쯤에서 가장 좋고 끝까지 올리면 오히려 손해입니다. 각 슬라이더 밑의 ＋/－ 설명을 보세요.</li>
       <li><b>인류 적응·공생</b>: 인류를 외계 환경에 맞추는 '적응'(생체 개조)을 키우면 외계 생물을 더 잘 소화해 같은 채집·수렵에서 더 많이 얻고 식량 수요가 줄어듭니다. '공생·동화'를 키우면 정착지 주변의 동물이 보호받고 죽이지 않고도 자원을 내놓습니다. 둘 다 자원을 계속 써야 오르고, 멈추면 서서히 줄며, 공존 가산점도 늘려 줍니다.</li>
       <li><b>동면 진화</b>: 소비자는 환경이 맞지 않으면 동면(지도에서 파란 테두리, 💤)에 들어갑니다. 동면 직전에는 배불러도 최대한 먹어 에너지를 비축하고, 동면 중에는 에너지를 거의 쓰지 않지만 포식자에게 쉽게 잡힙니다. 나쁜 환경이 이어지면 몇 해 만에 더 쉽게 동면하도록 진화하고, 환경이 좋아지면 다시 퇴화합니다. 동면 중에는 번식하지 않으므로 환경을 너무 오래 망가뜨리면 소용없습니다.</li>
-      <li>생산자나 소비자 중 <b>한 종이라도 멸종</b>하면 즉시 종료됩니다. 인류만 남으면 "나만 생존" 엔딩입니다.</li>
+      <li>시작 후 <b>2년은 정착 유예 기간</b>입니다. 이 동안 한 종까지는 멸종해도 '정착 실패'로 넘어가고 게임이 계속됩니다. 유예 중에 한 종이 더 멸종하거나, 유예가 끝난 뒤 남은 종이 하나라도 멸종하면 바로 끝납니다.</li>
+      <li>그 밖에는 생산자나 소비자 중 <b>한 종이라도 멸종</b>하면 즉시 종료됩니다. 인류만 남으면 "나만 생존" 엔딩입니다.</li>
       <li>인구가 <b>최고치의 절반 아래</b>로 급감하면 종료됩니다.</li>
       <li>시작 슬라이더는 일부러 높게 설정되어 있습니다. 가만히 두면 오래 가지 못해요.</li>
     </ul>
@@ -343,6 +355,25 @@ button:disabled{opacity:.4;cursor:not-allowed}
     <div class="pop-left" id="popLeft"></div>
     <div class="pop-right"><div id="popRight"></div>
       <p style="display:flex;gap:8px;justify-content:flex-end;margin-top:18px"><button class="btn ghost sm" onclick="resetSpecPar()">이 종 기본값으로</button><button class="btn sm" onclick="closeSpecEditor()">닫기</button></p></div>
+  </div>
+</div>
+
+<div id="modalSpectrum" class="modal hidden">
+  <div class="mbox" style="max-width:900px;width:96vw">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+      <h2 style="margin:0">대기 스펙트럼 분석 · 타임어택</h2>
+      <div style="font-size:14px">남은 시간 <b id="spTime" style="color:var(--bad);font-size:20px">60</b>초 · 점수 <b id="spPts" style="color:var(--accent);font-size:20px">0</b></div>
+    </div>
+    <p id="spIntro" style="margin:6px 0 8px">별빛이 행성 대기를 통과할 때 분자마다 정해진 파장의 빛을 흡수합니다. 아래 <b>투과 스펙트럼</b>에서 솟은 봉우리가 흡수 띠입니다. 분자 버튼을 누르면 그 분자의 흡수 띠 위치가 점선으로 겹쳐 보입니다. 이 대기에 들어 있는 분자를 모두 골라 <b>판정</b>하세요. 맞힌 분자 +1, 잘못 고른 분자 −1. 많이 맞힐수록 시작 자원이 늘어납니다.</p>
+    <canvas id="spCanvas" width="860" height="260" style="width:100%;height:auto;background:#fff;border:1px solid var(--line);border-radius:10px"></canvas>
+    <div id="spMol" style="display:flex;flex-wrap:wrap;gap:6px;margin:10px 0"></div>
+    <div id="spMsg" style="min-height:22px;font-size:13.5px"></div>
+    <p style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px;flex-wrap:wrap">
+      <button class="btn ghost sm" id="spSkip" onclick="finishSpectrum(true)">건너뛰기 (보너스 없음)</button>
+      <button class="btn ghost sm" id="spStartBtn" onclick="startSpectrumTimer()">분석 시작</button>
+      <button class="btn sm" id="spJudge" onclick="judgeSpectrum()">판정</button>
+      <button class="btn sm hidden" id="spDone" onclick="finishSpectrum(false)">정착 시작 →</button>
+    </p>
   </div>
 </div>
 
@@ -401,14 +432,14 @@ const NAMES = [
 const LV_COLOR = ['#4caf6a', '#f2d64b', '#f29a3d', '#e5483f', '#b05cf0'];
 
 const PLANETS = [
-  { id: 'proxima', name: '프록시마 b', tag: '적색왜성 · 조석고정', desc: '차갑고 습한 세계. 잦은 항성 플레어와 높은 방사선이 생태계를 위협한다.',
-    T: 2, H: 62, climate: 2, g: 1.1, rad: 2.5, color: '#c9533d' },
-  { id: 'trappist', name: '트라피스트-1e', tag: '온화한 물 행성', desc: '물이 풍부하고 기온이 온화하다. 계절 변동이 있으나 초보자에게 가장 무난하다.',
-    T: 16, H: 76, climate: 1, g: 0.9, rad: 1.0, color: '#3d8fc9' },
-  { id: 'kepler', name: '케플러-452b', tag: '슈퍼지구 · 고중력', desc: '안정된 기후의 큰 행성. 중력이 커서 생물의 에너지 소모가 많다.',
-    T: 24, H: 48, climate: 0, g: 1.6, rad: 0.6, color: '#c9a33d' },
-  { id: 'arida', name: '아리다 (가상)', tag: '사막 행성', desc: '건조하고 뜨거운 가상 행성. 극단적인 기후 변동 속에서 물을 어떻게 다룰지가 관건이다.',
-    T: 33, H: 20, climate: 2, g: 0.8, rad: 1.5, color: '#d9783a' },
+  { id: 'proxima', name: '프록시마 b', tag: '적색왜성 · 조석고정', desc: '한쪽 면만 별을 향한 조석고정 행성. 낮 반구 중심은 덥고 습하며 밤 반구는 얼어붙고, 그 경계에 온화한 띠가 있다. 잦은 플레어와 높은 방사선.',
+    T: 2, H: 62, climate: 2, g: 1.1, rad: 2.5, color: '#c9533d', geo: 'locked', mapSeed: 101 },
+  { id: 'trappist', name: '트라피스트-1e', tag: '온화한 물 행성', desc: '대부분이 바다인 온화한 행성. 습한 바다와 건조한 섬·대륙 내부, 서늘한 극지가 섞여 있어 초보자에게 가장 무난하다.',
+    T: 16, H: 76, climate: 1, g: 0.9, rad: 1.0, color: '#3d8fc9', geo: 'ocean', mapSeed: 202 },
+  { id: 'kepler', name: '케플러-452b', tag: '슈퍼지구 · 고중력', desc: '거대한 대륙의 슈퍼지구. 안쪽은 건조한 사막, 해안은 습하고, 극지는 서늘하다. 중력이 커서 생물의 에너지 소모가 많다.',
+    T: 24, H: 48, climate: 0, g: 1.6, rad: 0.6, color: '#c9a33d', geo: 'continent', mapSeed: 303 },
+  { id: 'arida', name: '아리다 (가상)', tag: '사막 행성', desc: '대부분이 뜨거운 사막인 가상 행성. 곳곳의 오아시스와 고위도의 서늘한 지대가 다른 생물의 피난처다. 극단적인 기후 변동.',
+    T: 33, H: 20, climate: 2, g: 0.8, rad: 1.5, color: '#d9783a', geo: 'desert', mapSeed: 404 },
 ];
 const CLIMATES = [
   { id: 0, name: '안정형', amp: 3, ev: 0.0, mult: 1.0, desc: '계절 변화가 작고 이상기후가 없다' },
@@ -425,6 +456,16 @@ const CIVS = [
 const DPC = 0.05;
 const ALPHA = 0.4, PK = 0.7; // 식물 종간 경쟁 계수(종내 경쟁보다 약함)와 종별 수용량
 const DEFAULTS = { adaptS: 0, symbS: 0, bias: 0.5, purify: 0, forest: 0, ration: 0, birth: 0.5, gather: 0.9, hunt: 0.9, industry: 0.8, dev: 0.1, school: 0.1, build: 0.3 };
+const GRACE_Y = 2;
+/* 친환경 혁신: 기술·건설이 일정 수준을 넘으면 해마다 일정 확률로 일어남. 교육 수준이 높을수록 확률↑ */
+const GREEN = [
+  { id: 'proc', name: '친환경 공정', need: s => s.tech >= 0.3, cond: '기술 30% 이상', eff: '산업 오염 배출 40% 감소' },
+  { id: 'precision', name: '정밀 농업', need: s => s.tech >= 0.4, cond: '기술 40% 이상', eff: '채집으로 땅이 지치는 정도 60% 감소' },
+  { id: 'renew', name: '재생에너지 전환', need: s => s.tech >= 0.55, cond: '기술 55% 이상', eff: '산업 폐열 제거 · 오염이 자연적으로 2배 빨리 줄어듦' },
+  { id: 'ecoBuild', name: '생태 건축', need: s => s.built >= 0.25, cond: '건설지 25% 이상', eff: '건설 구역 안에 생태 통로와 녹지를 남겨 동식물이 살 수 있음' },
+  { id: 'compact', name: '압축 도시', need: s => s.built >= 0.45, cond: '건설지 45% 이상', eff: '건설 구역 면적 약 50% 축소 · 건설 오염 제거' },
+];
+function greenChance(edu) { return Math.min(0.6, 0.08 + 0.45 * edu); }   // 정착 유예 기간(년): 이 동안 한 종까지는 멸종해도 계속
 const SX = 10, SY = 24; // 정착지 중심 칸
 
 /* 종 파라미터 (레벨 1~4) */
@@ -502,13 +543,75 @@ function makeField(rng, blur) {
   return a;
 }
 
+/* ===== 행성 지형: 행성마다 고유한 기온·습도 지도 (평균 대비 편차) ===== */
+const GEO = {};
+// geo 종류: locked(조석고정: 낮·밤 반구) / ocean(바다 행성) / continent(대륙) / desert(사막·오아시스·극지)
+function planetClimate(pl) {
+  const key = (pl.geo || 'band') + ':' + (pl.mapSeed || 0) + ':' + (pl.geoK ? pl.geoK.join(',') : '');
+  if (GEO[key]) return GEO[key];
+  const r = mulberry32((pl.mapSeed || 7) * 7919 + 13);
+  const K = pl.geoK || [];
+  const nT = makeField(r, 6), nH = makeField(r, 7), nC = makeField(r, 9), nF = makeField(r, 5);
+  const offT = new Float32Array(N), offH = new Float32Array(N), fert = new Float32Array(N);
+  const blobs = []; const nb = pl.geo === 'desert' ? (K[2] || 9) : 0;
+  for (let k = 0; k < nb; k++) blobs.push([r() * GW, 8 + r() * (GH - 16), 4.5 + r() * 4]);
+  for (let y = 0; y < GH; y++) {
+    const d = Math.abs(y - (GH - 1) / 2) / ((GH - 1) / 2);
+    for (let x = 0; x < GW; x++) {
+      const i = y * GW + x; let t = 0, h = 0;
+      const nt = (nT[i] - 0.5) * 5, nh = (nH[i] - 0.5);
+      if (pl.geo === 'locked') {          // 항성을 향한 낮 반구는 뜨겁고 습함, 밤 반구는 얼어붙음, 경계(명암 경계선)는 온화
+        const c = Math.cos(2 * Math.PI * (x - GW / 2) / GW);
+        t = (K[0] || 26) * c - 6 * d * d + nt; h = (K[1] || 20) * c + nh * 16;
+      } else if (pl.geo === 'ocean') {    // 대부분 습한 바다, 대륙 내부는 건조하고 더움
+        const land = Math.max(0, (nC[i] - (K[0] || 0.55)) / (1 - (K[0] || 0.55)));
+        t = 6 - 22 * d * d + 9 * land + nt; h = 6 - (K[1] || 58) * land + nh * 18;
+      } else if (pl.geo === 'continent') { // 적도는 덥고, 대륙 안쪽은 건조, 해안은 습함, 극지는 서늘
+        const inland = nC[i];
+        t = 7 - (K[0] || 26) * d * d + 5 * (inland - 0.5) + nt; h = (K[1] || 56) * (0.5 - inland) + nh * 14;
+      } else if (pl.geo === 'desert') {   // 대부분 사막, 오아시스는 습하고 덜 뜨거움, 고위도·고산은 차갑고 습함
+        let oa = 0; for (const [bx, by, br] of blobs) { let dx = Math.abs(x - bx); dx = Math.min(dx, GW - dx); const q = (dx * dx + (y - by) * (y - by)) / (br * br); oa = Math.max(oa, Math.exp(-q)); }
+        t = 6 - (K[0] || 34) * d * d - 6 * oa + nt; h = (K[1] || 48) * d * d + 68 * oa + nh * 10;
+      } else {                            // 기본: 위도대
+        t = 4 - 14 * d + nt; h = nh * 30;
+      }
+      offT[i] = t; offH[i] = h; fert[i] = 0.55 + 0.45 * nF[i];
+    }
+  }
+  // 평균 기온·습도가 설정값이 되도록 지도 평균을 0으로 맞춤
+  let mt = 0, mh = 0; for (let i = 0; i < N; i++) { mt += offT[i]; mh += offH[i]; } mt /= N; mh /= N;
+  for (let i = 0; i < N; i++) { offT[i] -= mt; offH[i] -= mh; }
+  return (GEO[key] = { offT, offH, fert });
+}
+// 설정 화면용: 지도 위 각 칸의 적합도로 종별 평균 적합도와 서식지 면적(적합도 30% 이상인 칸 비율) 계산
+function habitatStats(pl, lv, ni) {
+  const g = planetClimate(pl); let s = 0, c = 0;
+  for (let i = 0; i < N; i += 2) { const H = Math.max(0, Math.min(100, pl.H + g.offH[i])); const f = fit(pl.T + g.offT[i], H, lv, ni); s += f; if (f > 0.3) c++; }
+  const n = Math.ceil(N / 2); return { fit: s / n, area: c / n };
+}
+
+// 랜덤 행성: 지형 종류·강도·평균 기온/습도·중력·방사선을 무작위로. 두 번째 서식지가 20% 이상 생길 때까지 다시 뽑음
+function makeRandomPlanet(seed) {
+  const r = mulberry32((seed >>> 0) || 1); const geos = ['locked', 'ocean', 'continent', 'desert'];
+  const tags = { locked: '조석고정 · 낮과 밤의 반구', ocean: '바다 행성 · 섬과 대륙', continent: '대륙 행성 · 사막과 해안', desert: '사막 행성 · 오아시스와 극지' };
+  let pl = null;
+  for (let tries = 0; tries < 40; tries++) {
+    const geo = geos[(r() * 4) | 0];
+    const geoK = geo === 'locked' ? [18 + r() * 14, 10 + r() * 20] : geo === 'ocean' ? [0.45 + r() * 0.2, 40 + r() * 30] : geo === 'continent' ? [18 + r() * 16, 40 + r() * 30] : [24 + r() * 16, 30 + r() * 30, 5 + ((r() * 8) | 0)];
+    const code = String(100 + ((seed >>> 0) % 900));
+    pl = { id: 'random', name: '미지의 행성 X-' + code, tag: tags[geo], desc: '매번 새로 생성되는 행성. 지형과 기후를 직접 확인하고 맞는 종을 찾아야 한다.',
+      T: Math.round(-4 + r() * 40), H: Math.round(15 + r() * 72), climate: (r() * 3) | 0, g: Math.round((0.6 + r() * 1.2) * 10) / 10, rad: Math.round((0.3 + r() * 2.5) * 10) / 10,
+      color: 'hsl(' + ((r() * 360) | 0) + ',55%,52%)', geo, geoK: geoK.map(v => Math.round(v * 100) / 100), mapSeed: (seed % 100000) + 500, random: true };
+    const a = [0, 1, 2, 3].map(n => habitatStats(pl, 2, n).area).sort((x, y) => y - x);
+    if (a[1] >= 0.2 && a[0] <= 0.85) break;
+  }
+  return pl;
+}
+
 /* 설정 → 환경 적합도 평균 및 점수 배율 */
 function matchScore(cfg) {
   const pl = cfg.planet; let s = 0, c = 0;
-  for (let k = 0; k <= 10; k++) {
-    const d = k / 10; const T = pl.T + 4 - 14 * d; const H = pl.H;
-    for (let lv = 0; lv < 5; lv++) for (let v = 0; v < 2; v++) { s += fit(T, H, lv, cfg.species[lv][v]); c++; }
-  }
+  for (let lv = 0; lv < 5; lv++) for (let v = 0; v < 2; v++) { s += habitatStats(pl, lv, cfg.species[lv][v]).fit; c++; }
   return s / c;
 }
 function scoreMult(cfg) {
@@ -541,17 +644,8 @@ class Sim {
     this.targetYears = 0;
     this.mult = scoreMult(cfg);
     const r = this.rng;
-    const nT = makeField(r, 6), nH = makeField(r, 7), nF = makeField(r, 5);
-    this.offT = new Float32Array(N); this.offH = new Float32Array(N); this.fert = new Float32Array(N); this.fert0 = new Float32Array(N);
-    for (let y = 0; y < GH; y++) {
-      const d = Math.abs(y - (GH - 1) / 2) / ((GH - 1) / 2);
-      for (let x = 0; x < GW; x++) {
-        const i = y * GW + x;
-        this.offT[i] = 4 - 14 * d + (nT[i] - 0.5) * 5;
-        this.offH[i] = (nH[i] - 0.5) * 30;
-        this.fert[i] = 0.55 + 0.45 * nF[i]; this.fert0[i] = this.fert[i];
-      }
-    }
+    const geo = planetClimate(pl);
+    this.offT = Float32Array.from(geo.offT); this.offH = Float32Array.from(geo.offH); this.fert = Float32Array.from(geo.fert); this.fert0 = Float32Array.from(geo.fert);
     this.plant = new Float32Array(N); this.pa = new Float32Array(N); this.pb = new Float32Array(N); this.vr = new Uint8Array(N); this.type = new Uint8Array(N); this.en = new Float32Array(N);
     this.stamp = new Int32Array(N).fill(-1); this.reserve = new Uint8Array(N); this.list = new Int32Array(N);
     this.fitMap = new Float32Array(N);
@@ -564,7 +658,7 @@ class Sim {
     this.gather = DEFAULTS.gather; this.hunt = DEFAULTS.hunt; this.industry = DEFAULTS.industry;
     this.bias = DEFAULTS.bias; this.purify = DEFAULTS.purify; this.forest = DEFAULTS.forest; this.ration = DEFAULTS.ration; this.birth = DEFAULTS.birth;
     this.dev = DEFAULTS.dev; this.school = DEFAULTS.school; this.build = DEFAULTS.build;
-    this.adaptS = 0; this.symbS = 0; this.adapt = 0; this.symb = 0; this.symSup = 0; this.tech = 0; this.edu = 0; this.built = 0; this.zoneR = 0; this.growth = 1; this.greenNow = 0; this.ciSum = 0; this.streak = 0; this.maxStreak = 0; this.bonus = 0; this.msDone = 0; this.peakPop = this.P0; this.popWarn = 0; this.endangered = [];
+    this.adaptS = 0; this.symbS = 0; this.adapt = 0; this.symb = 0; this.symSup = 0; this.tech = 0; this.edu = 0; this.built = 0; this.zoneR = 0; this.growth = 1; this.greenNow = 0; this.ciSum = 0; this.streak = 0; this.maxStreak = 0; this.bonus = 0; this.msDone = 0; this.peakPop = this.P0; this.popWarn = 0; this.endangered = []; this.lost = []; this.survBonus = 0; this.incident = null; this.incidentCount = 0; this.green = {};
     this.hvYield = 2 * this.P0 * DPC / (this.civ.hv * 5 * 0.6);
     this.wS = 1; this.supplyNow = 0; this.demandNow = 0;
     // 통계
@@ -622,7 +716,7 @@ class Sim {
     if (this.stabLeft > 0) this.stabLeft--;
     this.Tg += (this.Tt - this.Tg) * 0.05; this.Hg += (this.Ht - this.Hg) * 0.05;
     if (t % 4 === 0) for (let i = 0; i < N; i++) this.fert[i] += (this.fert0[i] - this.fert[i]) * 0.012;   // 지력 회복(과채집하면 땅이 지침)
-    this.pollution = Math.max(0, this.pollution * 0.997 - 0.00002);
+    this.pollution = Math.max(0, this.pollution * (this.green && this.green.renew ? 0.994 : 0.997) - 0.00002);
   }
 
   localT(i) { return this.Tg + this.offT[i] + this.season + this.evT + 12 * this.pollution * (this.reserve[i] ? 0.4 : 1); }
@@ -732,6 +826,57 @@ class Sim {
     }
   }
 
+  // 돌발 사건: 판마다 무작위로 일어나 그때그때 대응을 요구함 (정착 유예 이후, 해가 갈수록 잦아짐)
+  stepIncidents() {
+    const yr = this.year(), r = this.rng;
+    if (yr < GRACE_Y || r() >= (0.12 + 0.006 * yr) / TPY) return;
+    const live = []; for (let l = 1; l <= 4; l++) for (let v = 0; v < 2; v++) if (!this.isLost(l, v) && this.cv[l][v] > 0) live.push([l, v]);
+    const kinds = ['epi', 'plague', 'asteroid', 'migrants', 'volcano', 'blight', 'ore', 'comet'];
+    const k = kinds[(r() * kinds.length) | 0]; let name = '', msg = '', tip = '';
+    if (k === 'epi' && live.length) {
+      const [l, v] = live[(r() * live.length) | 0]; let n = 0;
+      for (let i = 0; i < N; i++) if (this.type[i] === l && this.vr[i] === v && r() < 0.6) { this.type[i] = 0; this.en[i] = 0; n++; }
+      name = '동물 전염병'; msg = NAMES[l][this.sp[l][v]] + ' 사이에 전염병이 돌아 ' + n + '마리가 죽었습니다.'; tip = '이 종을 먹는 포식자와 수렵 압력을 줄이세요.';
+    } else if (k === 'plague') {
+      const loss = 0.12 * (1 - 0.6 * this.edu) * (1 - 0.4 * this.tech); this.pop *= 1 - loss;
+      name = '정착지 전염병'; msg = '정착지에 전염병이 돌아 인구가 ' + Math.round(loss * 100) + '% 줄었습니다.'; tip = '교육·기술 수준이 높을수록 피해가 작습니다.';
+    } else if (k === 'asteroid') {
+      const cx = (r() * GW) | 0, cy = (r() * GH) | 0, R = 7;
+      for (let dy = -R; dy <= R; dy++) for (let dx = -R; dx <= R; dx++) { if (dx * dx + dy * dy > R * R) continue; const i = ((cy + dy + GH) % GH) * GW + (cx + dx + GW) % GW; this.pa[i] = 0; this.pb[i] = 0; this.plant[i] = 0; this.type[i] = 0; this.en[i] = 0; }
+      this.Tg -= 4; name = '소행성 충돌'; msg = '소행성이 떨어져 한 지역이 초토화되고, 먼지로 기온이 일시적으로 4℃ 내려갔습니다.'; tip = '식생 복원·종 도입으로 회복을 도우세요.';
+    } else if (k === 'migrants') {
+      const add = this.pop * 0.2; this.pop += add; this.peakPop = Math.max(this.peakPop, this.pop);
+      name = '이주민 유입'; msg = '다른 정착지에서 이주민이 들어와 인구가 20% 늘었습니다. 식량 수요도 함께 늘어납니다.'; tip = '채집·배급·적응으로 늘어난 수요에 대비하세요.';
+    } else if (k === 'volcano') {
+      this.pollution = Math.min(1, this.pollution + 0.15); this.Tg -= 2;
+      name = '화산 분화'; msg = '화산이 분화해 대기 오염이 크게 늘고 기온이 내려갔습니다.'; tip = '오염 정화·조림으로 대응하세요.';
+    } else if (k === 'blight') {
+      const v = this.isLost(0, 0) ? 1 : this.isLost(0, 1) ? 0 : (r() < 0.5 ? 0 : 1); const arr = v ? this.pb : this.pa;
+      for (let i = 0; i < N; i++) { arr[i] *= 0.5; this.plant[i] = this.pa[i] + this.pb[i]; }
+      name = '식물 병해'; msg = NAMES[0][this.sp[0][v]] + '에 병해가 번져 절반이 말라 죽었습니다.'; tip = '채집을 줄이고 식생 복원을 고려하세요.';
+    } else if (k === 'ore') {
+      const g = Math.round(this.resMax * 0.25); this.res = Math.min(this.resMax, this.res + g);
+      name = '자원 광맥 발견'; msg = '새 광맥을 찾아 자원 ' + g + '을 얻었습니다.'; tip = '여유 자원을 투자나 개입에 쓰세요.';
+    } else {
+      this.Hg = Math.min(95, this.Hg + 10);
+      name = '얼음 혜성 낙하'; msg = '얼음 혜성이 떨어져 대기 습도가 일시적으로 10% 올랐습니다.'; tip = '습한 환경을 좋아하는 종에게 기회입니다.';
+    }
+    if (!name) return;
+    this.incidentCount++; this.incident = { name, msg, tip, y: yr };
+    this.say('돌발 사건 — ' + name + ': ' + msg + ' ' + tip, k === 'ore' || k === 'comet' ? 'good' : 'warn');
+  }
+
+  tryGreen() {
+    const p = greenChance(this.edu);
+    const el = GREEN.filter(g => !this.green[g.id] && g.need(this));
+    if (!el.length) return;
+    { const g = el[(this.rng() * el.length) | 0];
+      if (this.rng() < p) { this.green[g.id] = this.year(); this.say('친환경 혁신 — ' + g.name + ': ' + g.eff + '. (교육 수준이 높을수록 이런 혁신이 잘 일어납니다)', 'good'); this.incident = { name: g.name, msg: g.eff, tip: '친환경 혁신 달성: ' + g.eff, y: this.year(), good: true }; }
+    }   // 한 해에 최대 하나: 조건을 채운 혁신 중 하나를 골라 확률 판정
+  }
+
+  isLost(l, v) { for (const [a, b] of this.lost) if (a === l && b === v) return true; return false; }
+
   rescue() {
     if (this.pollution > 0.6) return;
     const c = [0, 0, 0, 0, 0], cvf = [[0, 0], [0, 0], [0, 0], [0, 0], [0, 0]];
@@ -743,7 +888,7 @@ class Sim {
     };
     // 생산자: 서식지가 남아 있는 한 종마다 최소 식생을 유지
     for (let v = 0; v < 2; v++) {
-      if (cvf[0][v] >= 60) continue;
+      if (cvf[0][v] >= 60 || this.isLost(0, v)) continue;
       const i = best(0, v); if (i < 0) continue;
       if (v === 0) this.pa[i] = Math.max(this.pa[i], 0.35); else this.pb[i] = Math.max(this.pb[i], 0.35);
       this.plant[i] = this.pa[i] + this.pb[i];
@@ -751,6 +896,7 @@ class Sim {
     for (let lv = 1; lv <= 4; lv++) {
       if (lv > 1 && c[lv - 1] < MINV[lv - 1] * 0.5) continue;
       for (let v = 0; v < 2; v++) {
+        if (this.isLost(lv, v)) continue;
         const n = cvf[lv][v], crit = n <= 2;
         if (!crit && (n >= MINV[lv] * 0.35 || this.rng() >= RESC[lv])) continue;
         const bi = best(lv, v); if (bi < 0) continue;
@@ -762,12 +908,12 @@ class Sim {
   stepHuman() {
     const civ = this.civ, rng = this.rng, type = this.type, plant = this.plant;
     const D0 = this.P0 * DPC;
-    const yr = this.year(); this.growth = 1 + 0.07 * yr + 0.0025 * yr * yr;   // 시간이 갈수록 소비 압력이 가속             // 시간이 갈수록 커지는 소비 압력
-    const yEff = this.hvYield * (1 + this.tech) * (1 + 1.0 * this.adapt);        // 기술이 높을수록 같은 채집·수렵에서 더 많이 얻음
+    const yr = this.year(); this.growth = 1 + (0.07 * yr + 0.0025 * yr * yr) * (1 - 0.5 * this.edu);   // 시간이 갈수록 소비 압력이 가속. 교육 수준이 높으면 증가 속도가 둔화
+    const yEff = this.hvYield * (1 + 1.5 * this.tech) * (1 + 1.0 * this.adapt);        // 기술이 높을수록 같은 채집·수렵에서 더 많이 얻음
     let supply = 0;
     const lab = 1 - 0.4 * this.purify - 0.3 * this.forest;   // 정화·조림에 노동력을 돌리면 채집·수렵·산업 인력이 줄어듦
     const kg = Math.round(civ.hv * 5 * this.gather * lab), kh = Math.round(civ.hv * 5 * this.hunt * lab);
-    for (let s = 0; s < kg; s++) { const i = (rng() * N) | 0; if (this.reserve[i]) continue; if (plant[i] > 0.3) { this.takePlant(i, 0.45); supply += yEff; this.fert[i] = Math.max(0.2, this.fert[i] - 0.12 * this.gather); } }
+    for (let s = 0; s < kg; s++) { const i = (rng() * N) | 0; if (this.reserve[i]) continue; if (plant[i] > 0.3) { this.takePlant(i, 0.45); supply += yEff; this.fert[i] = Math.max(0.2, this.fert[i] - 0.12 * this.gather * (this.green.precision ? 0.4 : 1)); } }
     for (let s = 0; s < kh; s++) { const i = (rng() * N) | 0; if (this.reserve[i]) continue; const lv = type[i]; const want = rng() < this.bias ? 2 : 1; if (lv === want && rng() < 0.8) { type[i] = 0; this.en[i] = 0; supply += yEff * 2; } }
     // 공생·동화: 정착지 가까이의 초식·소형 포식 동물과 살아 있는 채로 협력(젖·노동·정찰 등) — 죽이지 않고 얻는 공급
     if (this.symb > 0.01) {
@@ -777,13 +923,13 @@ class Sim {
       const ng = Math.round(R * R * 0.6 * this.symb);   // 보호받는 초식동물이 정착지 주변 식생을 과식
       for (let s = 0; s < ng; s++) { const a = rng() * 6.283, rr = Math.sqrt(rng()) * R; const x = Math.round(SX + Math.cos(a) * rr), y = Math.round(SY + Math.sin(a) * rr); if (x >= 0 && x < GW && y >= 0 && y < GH) this.takePlant(y * GW + x, 0.35 * this.symb); }
     } else this.symSup = 0;
-    const prod = this.industry * civ.ind * (1 + 0.5 * this.tech) * lab * (1 - 0.4 * this.forest); supply += prod;   // 숲이 넓을수록 공장·시설을 지을 공간이 줄어듦
-    this.Tg += 0.02 * this.industry * (1 + civ.ind / 10);   // 산업 폐열
-    this.pollution = Math.min(1, this.pollution + 0.0004 * this.birth * this.pop / this.P0 + 0.0003 * this.build * this.built + prod * civ.pe * 3 * (1 + 2.5 * this.tech) * (1 - 0.7 * this.tech * this.tech) * (1 + 0.8 * this.dev));   // 환경 쿠즈네츠 곡선: 기술 중반에 오염 최대, 고도화되면 청정화
+    const prod = this.industry * civ.ind * (1 + 1.0 * this.tech) * lab * (1 - 0.4 * this.forest); supply += prod;   // 숲이 넓을수록 공장·시설을 지을 공간이 줄어듦
+    if (!this.green.renew) this.Tg += 0.02 * this.industry * (1 + civ.ind / 10);   // 산업 폐열 (재생에너지 전환 후 없음)
+    this.pollution = Math.min(1, this.pollution + 0.0004 * this.birth * this.pop / this.P0 + (this.green.compact ? 0 : 0.0003 * this.build * this.built) + (this.green.proc ? 0.6 : 1) * prod * civ.pe * 3 * (1 + 2.2 * this.tech) * (1 - 0.7 * this.tech * this.tech) * (1 + 0.6 * this.dev));   // 환경 쿠즈네츠 곡선: 기술 중반에 오염 최대, 고도화되면 청정화
     // 건설: 온실·수경재배(생태계와 무관한 공급) / 유지비 / 서식지 잠식
-    const green = this.built * 0.8 * D0; const upkeep = this.built * 0.3 * D0;
+    const green = this.built * 1.3 * D0 * (1 + 0.5 * this.tech); const upkeep = this.built * 0.3 * D0;
     supply += green; this.greenNow = green;
-    const D = this.pop * DPC * this.growth * (1 - 0.4 * this.edu) * (1 + 0.6 * this.tech) * (1 + 0.3 * this.school) * (1 - 0.5 * this.adapt) * (1 - 0.35 * this.ration);
+    const D = this.pop * DPC * this.growth * (1 - 0.25 * this.edu) * (1 + 0.3 * this.tech) * (1 + 0.1 * this.school) * (1 - 0.5 * this.adapt) * (1 - 0.35 * this.ration);
     this.demandNow = D; this.supplyNow = supply;
     let avail = this.res + supply - upkeep, w, left;
     if (avail >= D) { left = avail - D; w = 1; } else { w = Math.max(0, avail) / D; left = 0; }
@@ -791,18 +937,18 @@ class Sim {
     const cDev = this.dev * 0.5 * D0, cEdu = this.school * 0.4 * D0, cCon = this.build * 0.6 * D0, cPur = this.purify * 0.5 * D0, cFor = this.forest * 0.5 * D0, cAd = this.adaptS * (0.5 + 0.8 * this.adaptS) * D0, cSy = this.symbS * 0.4 * D0, cTot = cDev + cEdu + cCon + cPur + cFor + cAd + cSy;
     const f = cTot > 0 ? Math.min(1, left / cTot) : 0;
     this.res = Math.max(0, Math.min(this.resMax, left - f * cTot));
-    this.pollution = Math.max(0, this.pollution - 0.006 * this.purify * f);
+    this.pollution = Math.max(0, this.pollution - 0.006 * this.purify * f * (1 + 0.6 * this.tech));   // 기술이 높을수록 정화 효율↑
     if (this.forest > 0 && f > 0) { const n = Math.round(40 * this.forest * f); for (let s = 0; s < n; s++) { const i = (rng() * N) | 0; if (this.type[i] === 0 || true) { const v = rng() < 0.5 ? 0 : 1; const tgt = v ? this.pb : this.pa; const fv = fit(this.localT(i), this.localH(i), 0, this.sp[0][v]); tgt[i] = Math.min(0.8, tgt[i] + 0.25 * fv); this.plant[i] = this.pa[i] + this.pb[i]; } } }
     this.adapt += 0.006 * this.adaptS * f * (1 - this.adapt) - 0.0003 * this.adapt;
     this.symb += 0.006 * this.symbS * f * (1 - this.symb) - 0.0008 * this.symb;
     if (this.adapt < 0) this.adapt = 0; if (this.symb < 0) this.symb = 0;
     this.pollution = Math.max(0, this.pollution - 0.003 * this.forest * f);   // 숲은 오염을 흡수
     this.tech += 0.0045 * this.dev * f * (1 - this.tech) * (1 + 3 * this.tech) - 0.0002 * this.tech;   // 자기가속: 지식이 쌓일수록 발전 속도↑
-    this.edu += 0.0020 * this.school * f * (1 - this.edu) - 0.0006 * this.edu;
-    this.built += 0.0030 * this.build * f * (1 - this.built) * (1 - 0.5 * this.forest);
+    this.edu += 0.0060 * this.school * f * (1 - this.edu) - 0.0006 * this.edu;
+    this.built += 0.0050 * this.build * f * (1 - this.built) * (1 - 0.5 * this.forest);
     if (this.forest > 0.05) this.built = Math.min(this.built, 1 - 0.6 * this.forest);   // 개발 가능한 부지 상한
     if (this.tech < 0) this.tech = 0; if (this.edu < 0) this.edu = 0;
-    this.zoneR = this.built > 0.01 ? 2 + 16 * this.built : 0;
+    this.zoneR = this.built > 0.01 ? 2 + (this.green.compact ? 11 : 16) * this.built : 0;
     if (this.zoneR > 0) this.applyZone();
     w *= 1 - 0.3 * this.ration * this.ration;   // 강한 배급은 영양·사기 저하로 이어짐
     this.wS += (w - this.wS) * 0.1;
@@ -817,7 +963,9 @@ class Sim {
     for (let dy = -ri; dy <= ri; dy++) for (let dx = -ri; dx <= ri; dx++) {
       if (dx * dx + dy * dy > r2) continue;
       const x = SX + dx, y = SY + dy; if (x < 0 || x >= GW || y < 0 || y >= GH) continue;
-      const i = y * GW + x; this.plant[i] = 0; this.pa[i] = 0; this.pb[i] = 0; if (this.type[i]) { this.type[i] = 0; this.en[i] = 0; }
+      const i = y * GW + x;
+      if (this.green.ecoBuild && ((x + y) % 3 === 0 || (x * 7 + y * 3) % 5 === 0)) { if (this.pa[i] > 0.25) this.pa[i] = 0.25; if (this.pb[i] > 0.25) this.pb[i] = 0.25; this.plant[i] = this.pa[i] + this.pb[i]; continue; }   // 생태 통로·녹지
+      this.plant[i] = 0; this.pa[i] = 0; this.pb[i] = 0; if (this.type[i]) { this.type[i] = 0; this.en[i] = 0; }
     }
   }
 
@@ -844,7 +992,17 @@ class Sim {
 
   checkEnd() {
     const c = this.counts; let ext = -1, extV = 0;
-    for (let l = 0; l < 5 && ext < 0; l++) for (let v = 0; v < 2; v++) { const gone = this.tick < 5 * TPY ? false : l === 0 ? this.cv[0][v] < 12 : this.cv[l][v] === 0; if (gone) { ext = l; extV = v; break; } }
+    const grace = this.tick < GRACE_Y * TPY;
+    for (let l = 0; l < 5 && ext < 0; l++) for (let v = 0; v < 2; v++) {
+      if (this.isLost(l, v)) continue;
+      const gone = l === 0 ? this.cv[0][v] < 12 : this.cv[l][v] === 0;
+      if (!gone) continue;
+      if (grace && this.lost.length === 0) {   // 유예 기간 중 첫 멸종은 '정착 실패'로 처리하고 계속
+        this.lost.push([l, v]);
+        this.say('정착 실패: ' + josa(NAMES[l][this.sp[l][v]], '이', '가') + '(' + LEVEL_LABEL[l] + ') 이 행성에 자리 잡지 못하고 사라졌습니다. 한 종이라도 더 멸종하면 게임이 끝납니다.', 'warn');
+        continue;
+      }
+      ext = l; extV = v; break; }
     this.peakPop = Math.max(this.peakPop, this.pop);
     const humDrop = this.pop <= this.peakPop * 0.5;
     if (ext >= 0 && humDrop) this.over = { type: 'both', title: '공멸', msg: josa(NAMES[ext][this.sp[ext][extV]], '이', '가') + ' 멸종했고, 인류도 급감했습니다.' };
@@ -857,6 +1015,7 @@ class Sim {
     // 위기 경고 (종 단위)
     this.endangered = [];
     for (let l = 0; l < 5; l++) for (let v = 0; v < 2; v++) {
+      if (this.isLost(l, v)) continue;
       const n = this.cv[l][v], thr = l === 0 ? 70 : Math.max(1.5, MINV[l] * 0.2);
       if (n < thr) {
         this.endangered.push([l, v]);
@@ -882,8 +1041,14 @@ class Sim {
   step() {
     if (this.over) return;
     this.tick++;
-    if (this.tick % TPY === 0) this.evolve();
-    this.stepEnv(); this.stepPlants(); this.stepAnimals(); this.rescue(); this.stepHuman(); this.stats(false);
+    if (this.tick % TPY === 0) {
+      this.evolve();
+      this.tryGreen();
+      const y = this.tick / TPY, b = Math.round(2 * y * this.mult.total);   // 생존 가산: 오래 버틸수록 해마다 커짐
+      this.survBonus += b; this.score += b;
+      if (y % 10 === 0) this.say('생존 ' + y + '년 달성 — 누적 생존 가산 +' + this.survBonus, 'good');
+    }
+    this.stepEnv(); this.stepIncidents(); this.stepPlants(); this.stepAnimals(); this.rescue(); this.stepHuman(); this.stats(false);
     const coexist = this.EI >= 0.55 && this.HI >= 0.6;
     if (coexist) this.streak++; else this.streak = Math.max(0, this.streak - 3);
     const base = 5 * this.mult.total * this.CI;
@@ -959,7 +1124,7 @@ class Sim {
   }
 }
 
-if (typeof module !== 'undefined') module.exports = { PARAM_DEF, PARAM_RANGE, DEFAULTS, Sim, PLANETS, CIVS, CLIMATES, NICHES, NAMES, LEVEL_LABEL, GW, GH, N, TPY, scoreMult, matchScore, fit, LV_COLOR };
+if (typeof module !== 'undefined') module.exports = { GREEN, greenChance, makeRandomPlanet, planetClimate, habitatStats, PARAM_DEF, PARAM_RANGE, DEFAULTS, Sim, PLANETS, CIVS, CLIMATES, NICHES, NAMES, LEVEL_LABEL, GW, GH, N, TPY, scoreMult, matchScore, fit, LV_COLOR };
 
 </script>
 <script>
@@ -984,21 +1149,34 @@ const cfg = { pi: 1, T: 16, H: 76, par: [0,1,2,3,4].map(()=>[{},{},{},{}]), clim
 let sim = null, paused = false, speed = 1, acc = 0, lastTs = 0, view = 'eco', pickMode = false, lastUI = 0, logLen = -1, ended = false;
 
 function curPlanet(){ return Object.assign({}, PLANETS[cfg.pi], { T: cfg.T, H: cfg.H, climate: cfg.climate, g: cfg.g, rad: cfg.rad, tilt: cfg.tilt }); }
-function speciesFit(lv, ni){
-  let s = 0; for (let k = 0; k <= 10; k++) s += fit(cfg.T + 4 - 14 * k / 10, cfg.H, lv, ni);
-  return s / 11;
+function speciesHab(lv, ni){ return habitatStats(curPlanet(), lv, ni); }
+function speciesFit(lv, ni){ return speciesHab(lv, ni).area; }
+function fitColor(f){ return f > .35 ? '#1f9d77' : f > .15 ? '#c98a12' : '#d63a2e'; }
+/* 랜덤 행성: 목록 끝에 한 칸 */
+const RAND_I = PLANETS.length; PLANETS.push(makeRandomPlanet((Math.random()*4294967295)>>>0));
+function rerollPlanet(ev){ if(ev) ev.stopPropagation(); PLANETS[RAND_I]=makeRandomPlanet((Math.random()*4294967295)>>>0); buildPlanetCards(); cfg.custom=false; selectPlanet(RAND_I); }
+const NICHE_RGB=[[90,150,220],[90,180,110],[220,160,70],[40,150,150]];
+function drawPreview(){
+  const c=$('pmap'); if(!c) return; const ctx=c.getContext('2d'), pl=curPlanet(), g=planetClimate(pl), im=ctx.createImageData(GW,GH);
+  for(let i=0;i<N;i++){ const T=pl.T+g.offT[i], H=Math.max(0,Math.min(100,pl.H+g.offH[i])); let bn=0,bf=-1; for(let n=0;n<4;n++){const f=fit(T,H,2,n); if(f>bf){bf=f;bn=n;}}
+    const k=0.35+0.65*Math.min(1,bf/0.8), o=i*4, col=NICHE_RGB[bn]; im.data[o]=255-(255-col[0])*k; im.data[o+1]=255-(255-col[1])*k; im.data[o+2]=255-(255-col[2])*k; im.data[o+3]=255; }
+  ctx.putImageData(im,0,0);
 }
-function fitColor(f){ return f > .65 ? '#1f9d77' : f > .35 ? '#c98a12' : '#d63a2e'; }
 
 /* ---------- 설정 화면 ---------- */
-function buildSetup(){
+function buildPlanetCards(){
   $('planets').innerHTML = PLANETS.map((p,i)=>`
     <button class="card planet" data-i="${i}">
       <div class="orb" style="background:radial-gradient(circle at 32% 30%,${p.color},#1b1410 92%)"></div>
-      <h3>${p.name}</h3><div class="t">${p.tag}</div><p>${p.desc}</p>
+      <h3>${p.random?'🎲 ':''}${p.name}</h3><div class="t">${p.tag}</div><p>${p.desc}</p>
       <div class="chips"><span class="chip">${p.T}℃</span><span class="chip">습도 ${p.H}%</span><span class="chip">${CLIMATES[p.climate].name}</span><span class="chip">중력 ${p.g}g</span><span class="chip">방사선 ${p.rad<1?'낮음':p.rad<2?'보통':'높음'}</span></div>
+      ${p.random?'<span class="btn ghost sm" style="display:inline-block;margin-top:8px" onclick="rerollPlanet(event)">🎲 다른 행성 생성</span>':''}
     </button>`).join('');
   $('planets').querySelectorAll('.card').forEach(b=>b.onclick=()=>selectPlanet(+b.dataset.i));
+  document.querySelectorAll('#planets .card').forEach((b,i)=>b.classList.toggle('sel',i===cfg.pi));
+}
+function buildSetup(){
+  buildPlanetCards();
   $('climSeg').innerHTML = CLIMATES.map(c=>`<button data-c="${c.id}">${c.name}<small>${c.desc}</small></button>`).join('');
   $('climSeg').querySelectorAll('button').forEach(b=>b.onclick=()=>{cfg.climate=+b.dataset.c;cfg.custom=true;refreshSetup();});
   $('civSeg').innerHTML = CIVS.map((c,i)=>`<button data-c="${i}">${i+1}단계 · ${c.name}<small>${c.desc} (×${c.mult})</small></button>`).join('');
@@ -1082,13 +1260,14 @@ function refreshSetup(keepSpecies){
   document.querySelectorAll('#civSeg button').forEach(b=>b.classList.toggle('sel',+b.dataset.c===cfg.civ));
   // 종 선택
   $('species').innerHTML = LEVEL_LABEL.map((lab,lv)=>`
-    <div class="sp-row"><h3><span class="dot" style="background:${LV_COLOR[lv]}"></span>${lab} <small style="color:var(--muted);font-weight:400">${cfg.species[lv].length}/2 선택 · 다시 누르면 취소${cfg.species[lv].some(n=>speciesFit(lv,n)<0.35)?' · <span style="color:#d63a2e">환경에 안 맞는 종 포함 (고위험·고배율)</span>':''}</small></h3>
-    <div class="sp-opts">${[0,1,2,3].map(n=>{const f=speciesFit(lv,n);return `
+    <div class="sp-row"><h3><span class="dot" style="background:${LV_COLOR[lv]}"></span>${lab} <small style="color:var(--muted);font-weight:400">${cfg.species[lv].length}/2 선택 · 다시 누르면 취소${cfg.species[lv].some(n=>speciesFit(lv,n)<0.15)?' · <span style="color:#d63a2e">환경에 안 맞는 종 포함 (고위험·고배율)</span>':''}</small></h3>
+    <div class="sp-opts">${[0,1,2,3].map(n=>{const hb=speciesHab(lv,n), f=hb.area;return `
       <button class="sp ${cfg.species[lv].includes(n)?'sel':''}" data-lv="${lv}" data-n="${n}">
-        <b>${NAMES[lv][n]}</b><small>${NICHES[n].label} · 적합도 ${Math.round(f*100)}%</small>
+        <b>${NAMES[lv][n]}</b><small>${NICHES[n].label} · 서식지 ${Math.round(f*100)}% · 적합도 ${Math.round(hb.fit*100)}%</small>
         <div class="fitbar"><i style="width:${Math.round(f*100)}%;background:${fitColor(f)}"></i></div></button>`}).join('')}</div>
     </div>`).join('');
   $('species').querySelectorAll('.sp').forEach(b=>b.onclick=()=>{const lv=+b.dataset.lv,n=+b.dataset.n,s=cfg.species[lv]; const k=s.indexOf(n); if(k>=0) s.splice(k,1); else { if(s.length>=2) return; s.push(n); } refreshSetup();});
+  drawPreview();
   { let c=0; cfg.species.forEach((p,lv)=>p.forEach(n=>{ if(Object.keys(cfg.par[lv][n]).length) c++; })); $('parNote').textContent=c?('직접 설정한 종 '+c+'개'):'기본 특성'; }
   refreshSummary();
 }
@@ -1103,17 +1282,94 @@ function refreshSummary(){
 /* ---------- 게임 시작 ---------- */
 function openMission(){ $('mKeepRow').classList.toggle('hidden',!lastCtl); $('mKeepRow').style.display=lastCtl?'flex':'none'; $('mKeep').checked=!!(lastCtl&&keepNext); $('mPin').value=''; $('mErr').textContent=''; $('mName').value=playerName; $('modalEnd').classList.add('hidden'); $('modalMission').classList.remove('hidden'); setTimeout(()=>$('mName').focus(),50); }
 function closeMission(){ $('modalMission').classList.add('hidden'); }
+
+/* ---------- 대기 스펙트럼 분석 미니게임 ---------- */
+// 대표 흡수 띠 (μm, 상대 세기, 폭) — 0.5~5 μm 근적외선 영역의 근사값
+const MOLS=[
+  {id:'H2O',name:'물 (H₂O)',col:'#2a74c9',b:[[0.94,.3],[1.14,.4],[1.38,.7],[1.87,.8],[2.7,1,.09]]},
+  {id:'CO2',name:'이산화탄소 (CO₂)',col:'#d63a2e',b:[[1.6,.2],[2.0,.45],[2.7,.6,.08],[4.3,1,.09]]},
+  {id:'CH4',name:'메탄 (CH₄)',col:'#1f9d77',b:[[1.66,.45],[2.3,.65],[3.3,1,.07]]},
+  {id:'O2',name:'산소 (O₂)',col:'#8a5cf0',b:[[0.69,.45,.015],[0.76,.85,.015],[1.27,.45,.02]]},
+  {id:'O3',name:'오존 (O₃)',col:'#c98a12',b:[[0.6,.6,.07]]},
+  {id:'CO',name:'일산화탄소 (CO)',col:'#6d4c41',b:[[2.35,.45],[4.65,.85,.07]]},
+  {id:'NH3',name:'암모니아 (NH₃)',col:'#e05ca0',b:[[1.5,.4],[2.0,.5],[3.0,.85,.07]]},
+  {id:'Na',name:'나트륨 (Na)',col:'#e6a100',b:[[0.589,.9,.012]]},
+];
+const SP_L0=0.5, SP_L1=5.0, SP_N=440, SP_TIME=60;
+let spState=null, specBonus=0, specPtsFinal=0;
+function spRand(){ return Math.random(); }
+function spNewRound(){
+  const r=spState.round, k=2+Math.min(2,Math.floor(r/2))+(spRand()<0.3?1:0);
+  const ids=MOLS.map(m=>m.id).sort(()=>spRand()-0.5).slice(0,Math.min(5,k));
+  const amp={}; ids.forEach(id=>amp[id]=0.6+0.4*spRand());
+  const noise=0.05+0.02*Math.min(5,r), y=new Float32Array(SP_N), base=0.25+0.15*spRand();
+  for(let j=0;j<SP_N;j++){ const L=SP_L0+(SP_L1-SP_L0)*j/(SP_N-1); let v=base+0.04*(1/(L*L))*0.25;
+    for(const m of MOLS){ if(!amp[m.id]) continue; for(const [c,s,w] of m.b){ const sg=w||0.04; v+=amp[m.id]*s*0.55*Math.exp(-(L-c)*(L-c)/(2*sg*sg)); } }
+    v+=(spRand()+spRand()+spRand()-1.5)*noise; y[j]=v; }
+  spState.truth=new Set(ids); spState.sel=new Set(); spState.y=y; spState.reveal=false; drawSpectrum(); spButtons();
+}
+function drawSpectrum(){
+  const c=$('spCanvas'), ctx=c.getContext('2d'), W=c.width, H=c.height, pl=46, pr=10, pt=10, pb=34;
+  ctx.clearRect(0,0,W,H); const X=L=>pl+(L-SP_L0)/(SP_L1-SP_L0)*(W-pl-pr), Y=v=>H-pb-(v/1.6)*(H-pt-pb);
+  ctx.strokeStyle='#e4e0d5'; ctx.fillStyle='#5f6b76'; ctx.font='12px sans-serif'; ctx.textAlign='center'; ctx.lineWidth=1;
+  for(let L=0.5;L<=5.001;L+=0.5){ ctx.beginPath(); ctx.moveTo(X(L),pt); ctx.lineTo(X(L),H-pb); ctx.stroke(); ctx.fillText(L.toFixed(1),X(L),H-pb+15); }
+  ctx.fillText('파장 (μm)',W/2,H-3); ctx.save(); ctx.translate(13,H/2-10); ctx.rotate(-Math.PI/2); ctx.fillText('흡수량(투과 깊이) →',0,0); ctx.restore();
+  // 선택(또는 정답 공개) 분자의 흡수 띠 점선
+  const show=spState.reveal?spState.truth:spState.sel;
+  for(const m of MOLS){ if(!show.has(m.id)) continue; ctx.strokeStyle=m.col; ctx.setLineDash([4,4]); ctx.lineWidth=1.5;
+    for(const [cL] of m.b){ ctx.beginPath(); ctx.moveTo(X(cL),pt); ctx.lineTo(X(cL),H-pb); ctx.stroke(); } ctx.setLineDash([]);
+    ctx.fillStyle=m.col; ctx.textAlign='left'; ctx.fillText(m.id,X(m.b[m.b.length-1][0])+3,pt+12+MOLS.indexOf(m)*13); }
+  ctx.strokeStyle='#1f2933'; ctx.lineWidth=1.6; ctx.beginPath();
+  for(let j=0;j<SP_N;j++){ const L=SP_L0+(SP_L1-SP_L0)*j/(SP_N-1); const x=X(L), yy=Y(spState.y[j]); j?ctx.lineTo(x,yy):ctx.moveTo(x,yy); } ctx.stroke();
+}
+function spButtons(){
+  $('spMol').innerHTML=MOLS.map(m=>{ const on=spState.sel.has(m.id), ans=spState.reveal&&spState.truth.has(m.id);
+    return `<button class="btn ${on?'sm':'ghost sm'}" data-m="${m.id}" style="${on?`background:${m.col};border-color:${m.col};color:#fff`:''}${ans?';box-shadow:0 0 0 3px #1f9d77':''}">${m.name}</button>`; }).join('');
+  $('spMol').querySelectorAll('button').forEach(b=>b.onclick=()=>{ if(!spState.running||spState.reveal) return; const id=b.dataset.m; spState.sel.has(id)?spState.sel.delete(id):spState.sel.add(id); drawSpectrum(); spButtons(); });
+}
+function openSpectrum(){
+  spState={round:0,pts:0,running:false,reveal:false,left:SP_TIME,timer:null,rounds:0,hit:0,miss:0};
+  $('spTime').textContent=SP_TIME; $('spPts').textContent=0; $('spMsg').textContent='"분석 시작"을 누르면 60초 타이머가 시작됩니다. 시간 안에 최대한 많은 스펙트럼을 판정하세요.';
+  $('spDone').classList.add('hidden'); $('spJudge').classList.remove('hidden'); $('spStartBtn').classList.remove('hidden'); $('spSkip').classList.remove('hidden');
+  spNewRound(); $('modalSpectrum').classList.remove('hidden');
+}
+function startSpectrumTimer(){
+  if(spState.running) return; spState.running=true; $('spStartBtn').classList.add('hidden'); $('spMsg').textContent='';
+  spState.timer=setInterval(()=>{ spState.left--; $('spTime').textContent=spState.left; if(spState.left<=0) endSpectrum(); },1000);
+}
+function judgeSpectrum(){
+  if(!spState.running) { startSpectrumTimer(); return; }
+  if(spState.reveal) return;
+  let good=0,bad=0; for(const id of spState.sel){ if(spState.truth.has(id)) good++; else bad++; }
+  const missed=[...spState.truth].filter(id=>!spState.sel.has(id));
+  spState.pts=Math.max(0,spState.pts+good-bad); spState.hit+=good; spState.miss+=bad; spState.rounds++; $('spPts').textContent=spState.pts;
+  $('spMsg').innerHTML=`<span style="color:var(--good)">맞힘 ${good}</span> · <span style="color:var(--bad)">오답 ${bad}</span>${missed.length?` · 놓친 분자: ${missed.join(', ')}`:''} — 정답: <b>${[...spState.truth].join(', ')}</b>`;
+  spState.reveal=true; drawSpectrum(); spButtons();
+  setTimeout(()=>{ if(!spState.running) return; spState.round++; spNewRound(); },1300);
+}
+function endSpectrum(){
+  clearInterval(spState.timer); spState.running=false; spState.reveal=true; drawSpectrum(); spButtons();
+  const b=Math.min(0.6,0.04*spState.pts);
+  $('spMsg').innerHTML=`<b>분석 종료!</b> 스펙트럼 ${spState.rounds}개 판정 · 점수 ${spState.pts} → <b style="color:var(--accent)">시작 자원 +${Math.round(b*100)}%</b> (점수 1당 +4%, 최대 +60%)`;
+  $('spJudge').classList.add('hidden'); $('spStartBtn').classList.add('hidden'); $('spSkip').classList.add('hidden'); $('spDone').classList.remove('hidden');
+}
+function finishSpectrum(skip){
+  if(spState&&spState.timer) clearInterval(spState.timer);
+  specPtsFinal=skip?0:(spState?spState.pts:0); specBonus=skip?0:Math.min(0.6,0.04*specPtsFinal);
+  $('modalSpectrum').classList.add('hidden'); startGame();
+}
 function confirmMission(){
   const n=$('mName').value.trim(); if(!n){ $('mErr').textContent='이름을 입력해 주세요.'; return; }
   if($('mPin').value!==STAFF_PIN){ $('mErr').textContent='PIN이 맞지 않습니다. 스태프에게 확인받으세요.'; return; }
-  playerName=n; missionOK=true; keepNext=!!(lastCtl&&$('mKeep').checked); closeMission(); startGame();
+  playerName=n; missionOK=true; keepNext=!!(lastCtl&&$('mKeep').checked); closeMission(); openSpectrum();
 }
 function startGame(){
   if(!missionOK) return;
   missionOK=false; // 한 번의 승인으로 한 판만
   const seed=(FESTIVAL_SEED!==null)?FESTIVAL_SEED:(Math.random()*4294967295)>>>0; cfg.seed=seed;
   sim = new Sim({ planet: curPlanet(), species: cfg.species.map(a=>a.slice()), params: paramsNow(), civ: cfg.civ, seed });
-  sim.res *= MISSION_BONUS;
+  sim.res *= MISSION_BONUS * (1 + specBonus);
+  if(specBonus>0) sim.say('스펙트럼 분석 보너스: 시작 자원 +'+Math.round(specBonus*100)+'% (분석 점수 '+specPtsFinal+')','good');
   $('sAd').value=0; $('sSy').value=0; $('sBi').value=Math.round(sim.bias*100); $('sPu').value=0; $('sFo').value=0; $('sRa').value=0; $('sBr').value=Math.round(sim.birth*100); $('sG').value=Math.round(sim.gather*100); $('sHu').value=Math.round(sim.hunt*100); $('sI').value=Math.round(sim.industry*100); $('sD').value=Math.round(sim.dev*100); $('sE').value=Math.round(sim.school*100); $('sB').value=Math.round(sim.build*100);
   if(keepNext && lastCtl){ Object.assign(sim,lastCtl); syncSliders(); } keepNext=false;
   paused=false; speed=1; acc=0; view='eco'; pickMode=false; ended=false; logLen=-1;
@@ -1242,13 +1498,13 @@ function drawChart(){
 }
 function setBar(id,v,col){ const e=$(id); e.style.width=Math.max(0,Math.min(100,v*100))+'%'; if(col) e.style.background=col; }
 function updateUI(){
-  $('gYear').textContent=Math.floor(sim.year()); $('gScore').textContent=fmt(sim.score); $('gBonus').textContent='+'+fmt(sim.bonus); $('gStreak').textContent=(sim.streak/TPY).toFixed(1);
+  $('gYear').textContent=Math.floor(sim.year()); $('gScore').textContent=fmt(sim.score); $('gBonus').textContent='+'+fmt(sim.bonus); $('gSurv').textContent='+'+fmt(sim.survBonus); $('gStreak').textContent=(sim.streak/TPY).toFixed(1);
   $('ciV').textContent=Math.round(sim.CI*100); setBar('ciB',sim.CI);
   $('eiV').textContent=Math.round(sim.EI*100)+'%'; setBar('eiB',sim.EI); $('hiV').textContent=Math.round(sim.HI*100)+'%'; setBar('hiB',sim.HI);
   $('polV').textContent=Math.round(sim.pollution*100)+'%'; setBar('polB',sim.pollution);
   const mx=Math.max(...sim.counts.map(c=>Math.log10(1+c)));
   for(let lv=0;lv<5;lv++){
-    for(let v=0;v<2;v++){ const c=sim.cv[lv][v], gone=lv===0?c<12:c<=0; const hb=lv>0?sim.hbc[lv][v]:0; $('pc'+lv+'_'+v).textContent=gone?'멸종':fmt(c)+(hb>0?' (💤'+fmt(hb)+')':''); $('pr'+lv+'_'+v).classList.toggle('ext',gone);
+    for(let v=0;v<2;v++){ const c=sim.cv[lv][v], gone=lv===0?c<12:c<=0, lostSp=sim.isLost(lv,v); const hb=lv>0?sim.hbc[lv][v]:0; $('pc'+lv+'_'+v).textContent=lostSp?'정착 실패':gone?'멸종':fmt(c)+(hb>0?' (💤'+fmt(hb)+')':''); $('pr'+lv+'_'+v).classList.toggle('ext',gone);
       setBar('pb'+lv+'_'+v, Math.log10(1+c)/Math.log10(lv===0?3000:2000));
       if(lv>0) $('pi'+lv+'_'+v).disabled = sim.res < sim.cost(14); }
   }
@@ -1257,6 +1513,7 @@ function updateUI(){
   $('vAd').textContent=Math.round(sim.adaptS*100)+'%'; $('vSy').textContent=Math.round(sim.symbS*100)+'%';
   $('hAd').textContent='적응도 '+Math.round(sim.adapt*100)+'% · 외계 생물을 더 잘 소화하고 식량 수요가 줄어듦'; $('hSy').textContent='동화도 '+Math.round(sim.symb*100)+'% · 정착지 주변 동물이 보호받고, 죽이지 않고도 자원을 줌 (+'+sim.symSup.toFixed(1)+'/틱)';
   $('vBi').textContent=Math.round(sim.bias*100)+'%'; $('vPu').textContent=Math.round(sim.purify*100)+'%'; $('vFo').textContent=Math.round(sim.forest*100)+'%'; $('vRa').textContent=Math.round(sim.ration*100)+'%'; $('vBr').textContent=Math.round(sim.birth*100)+'%';
+  { const p=greenChance(sim.edu); $('greenBox').innerHTML=GREEN.map(g=>sim.green[g.id]?`<div style="color:var(--good)">✓ <b>${g.name}</b> — ${g.eff} (${Math.round(sim.green[g.id])}년)</div>`:g.need(sim)?`<div style="color:var(--accent2)">◎ <b>${g.name}</b> — 조건 충족, 올해 확률 ${Math.round(p*100)}% <span style="color:var(--muted)">(${g.eff})</span></div>`:`<div style="color:var(--muted)">🔒 ${g.name} — ${g.cond} 필요 · ${g.eff}</div>`).join(''); }
   $('vD').textContent=Math.round(sim.dev*100)+'%'; $('vE').textContent=Math.round(sim.school*100)+'%'; $('vB').textContent=Math.round(sim.build*100)+'%';
   $('hD').textContent='기술 '+Math.round(sim.tech*100)+'% — '+(sim.tech<0.25?'초기: 쌓일수록 발전이 빨라지지만 산업 오염과 소비가 함께 커집니다':sim.tech<0.65?'중기: 오염 배출이 정점. 정화·조림 병행 필요':'후기: 기술이 청정화로 이어져 오염이 줄기 시작합니다');
   $('hE').textContent='교육 수준 '+Math.round(sim.edu*100)+'% — 1인당 소비와 인구 증가가 줄어듭니다';
@@ -1272,6 +1529,8 @@ function updateUI(){
   // 배너
   let bn='';
   if(sim.ev) bn+=`<div class="bn w">⚠ 이상기후: ${sim.ev.name}</div>`;
+  if(sim.incident && sim.year()-sim.incident.y<1.5) bn+=sim.incident.good?`<div class="bn" style="background:#e3f4ec;border-color:#9bd3bf;color:#14634b">🌱 친환경 혁신: ${sim.incident.name} — ${sim.incident.msg}</div>`:`<div class="bn w">⚡ 돌발 사건: ${sim.incident.name} — ${sim.incident.tip}</div>`;
+  if(sim.year()<GRACE_Y) bn+=`<div class="bn w">정착 유예 중 (남은 ${(GRACE_Y-sim.year()).toFixed(1)}년) · 정착 실패 ${sim.lost.length}/1</div>`;
   if(sim.endangered.length){ bn+=`<div class="bn">멸종 위기: ${sim.endangered.map(([l,v])=>NAMES[l][sim.sp[l][v]]).join(', ')} — 멸종하면 게임 종료</div>`; }
   if(sim.wS<0.6) bn+=`<div class="bn w">자원 부족 — 인구가 줄고 있습니다 (최고치의 절반 아래면 종료)</div>`;
   if(pickMode) bn+=`<div class="bn w" style="color:#17426e;border-color:#9ec1ea;background:rgba(255,255,255,.95)">지도를 클릭해 보호구역 위치를 정하세요</div>`;
@@ -1316,7 +1575,7 @@ function showEnd(){
     <div class="kv">
       <div><span>생존 기간</span><b>${yrs.toFixed(1)}년</b></div><div><span>점수 배율</span><b>×${sim.mult.total.toFixed(2)}</b></div>
       <div><span>최종 생태계 건강</span><b>${Math.round(sim.EI*100)}%</b></div><div><span>최종 인류 안정</span><b>${Math.round(sim.HI*100)}%</b></div>
-      <div><span>공존 가산점</span><b>+${fmt(sim.bonus)}</b></div><div><span>최장 연속 공존</span><b>${(sim.maxStreak/TPY).toFixed(1)}년</b></div>
+      <div><span>공존 가산점</span><b>+${fmt(sim.bonus)}</b></div><div><span>생존 가산점</span><b>+${fmt(sim.survBonus)}</b></div><div><span>정착 실패한 종</span><b>${sim.lost.length?sim.lost.map(([l,v])=>NAMES[l][sim.sp[l][v]]).join(', '):'없음'}</b></div><div><span>최장 연속 공존</span><b>${(sim.maxStreak/TPY).toFixed(1)}년</b></div>
       <div><span>기술 / 교육</span><b>${Math.round(sim.tech*100)}% / ${Math.round(sim.edu*100)}%</b></div><div><span>건설지</span><b>${Math.round(sim.built*100)}%</b></div>
       <div><span>인구</span><b>${fmt(sim.pop)}</b></div><div><span>오염도</span><b>${Math.round(sim.pollution*100)}%</b></div>
     </div>
